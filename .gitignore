@@ -1,0 +1,10 @@
+*.env
+assets/
+volumes/
+
+tests/
+.DS_Store
+.idea/
+.vscode
+tmp/
+logs/
