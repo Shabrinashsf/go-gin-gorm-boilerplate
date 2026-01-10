@@ -13,6 +13,7 @@ import (
 	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/repository"
 	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/routes"
 	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/service"
+	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/utils/logger"
 	"github.com/common-nighthawk/go-figure"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -21,20 +22,20 @@ import (
 func main() {
 	// Initialize environment variables
 	if err := godotenv.Load(".env"); err != nil {
-		log.Println("cannot load .env:", err)
+		logger.Errorf("cannot load .env: %v", err)
 	} else {
-		log.Println(".env loaded successfully")
+		logger.Infof(".env loaded successfully")
 	}
 
 	// Initialized database
-	log.Println("Setting up database connection...")
+	logger.Infof("Setting up database connection...")
 	db := database.SetUpDatabaseConnection()
 	defer database.CloseDatabaseConnection(db)
-	log.Println("Database connection established.")
+	logger.Infof("Database connection established.")
 
 	// Handle CLI command
 	if len(os.Args) > 1 {
-		log.Println("Running commands...")
+		logger.Infof("Running commands...")
 		cmd.Command(db)
 		return
 	}
@@ -54,6 +55,8 @@ func main() {
 		transactionController controller.TransactionController = controller.NewTransactionController(transactionService)
 	)
 
+	logger.Infof("Services initialized")
+	logger.Infof("Setting up server...")
 	server := gin.Default()
 	server.Use(middleware.CORSMiddleware())
 
