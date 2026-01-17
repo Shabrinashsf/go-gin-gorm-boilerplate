@@ -1,7 +1,9 @@
 package controller
 
 import (
+	"context"
 	"net/http"
+	"time"
 
 	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/dto"
 	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/service"
@@ -34,6 +36,9 @@ func NewUserController(us service.UserService) UserController {
 }
 
 func (c *userController) RegisterUser(ctx *gin.Context) {
+	reqCtx, cancel := context.WithTimeout(ctx.Request.Context(), 20*time.Second)
+	defer cancel()
+
 	var req dto.UserRegistrationRequest
 	if err := ctx.ShouldBind(&req); err != nil {
 		res := response.BuildResponseFailed(dto.MESSAGE_FAILED_GET_DATA_FROM_BODY, err.Error(), nil)
@@ -41,7 +46,7 @@ func (c *userController) RegisterUser(ctx *gin.Context) {
 		return
 	}
 
-	result, err := c.userService.RegisterUser(ctx.Request.Context(), req)
+	result, err := c.userService.RegisterUser(reqCtx, req)
 	if err != nil {
 		res := response.BuildResponseFailed(dto.MESSAGE_FAILED_REGISTER_USER, err.Error(), nil)
 		ctx.JSON(http.StatusBadRequest, res)
@@ -53,6 +58,9 @@ func (c *userController) RegisterUser(ctx *gin.Context) {
 }
 
 func (c *userController) Login(ctx *gin.Context) {
+	reqCtx, cancel := context.WithTimeout(ctx.Request.Context(), 20*time.Second)
+	defer cancel()
+
 	var req dto.UserLoginRequest
 	if err := ctx.ShouldBind(&req); err != nil {
 		res := response.BuildResponseFailed(dto.MESSAGE_FAILED_GET_DATA_FROM_BODY, err.Error(), nil)
@@ -60,7 +68,7 @@ func (c *userController) Login(ctx *gin.Context) {
 		return
 	}
 
-	result, err := c.userService.Login(ctx.Request.Context(), req)
+	result, err := c.userService.Login(reqCtx, req)
 	if err != nil {
 		res := response.BuildResponseFailed(dto.MESSAGE_FAILED_LOGIN_USER, err.Error(), nil)
 		ctx.JSON(http.StatusBadRequest, res)
@@ -72,6 +80,9 @@ func (c *userController) Login(ctx *gin.Context) {
 }
 
 func (c *userController) SendVerificationEmail(ctx *gin.Context) {
+	reqCtx, cancel := context.WithTimeout(ctx.Request.Context(), 20*time.Second)
+	defer cancel()
+
 	var req dto.SendVerificationEmailRequest
 	if err := ctx.ShouldBind(&req); err != nil {
 		res := response.BuildResponseFailed(dto.MESSAGE_FAILED_GET_DATA_FROM_BODY, err.Error(), nil)
@@ -79,7 +90,7 @@ func (c *userController) SendVerificationEmail(ctx *gin.Context) {
 		return
 	}
 
-	err := c.userService.SendVerificationEmail(ctx.Request.Context(), req)
+	err := c.userService.SendVerificationEmail(reqCtx, req)
 	if err != nil {
 		res := response.BuildResponseFailed(dto.MESSAGE_FAILED_PROSES_REQUEST, err.Error(), nil)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, res)
@@ -91,6 +102,9 @@ func (c *userController) SendVerificationEmail(ctx *gin.Context) {
 }
 
 func (c *userController) VerifyEmail(ctx *gin.Context) {
+	reqCtx, cancel := context.WithTimeout(ctx.Request.Context(), 20*time.Second)
+	defer cancel()
+
 	token := ctx.Query("token")
 
 	if token == "" {
@@ -109,7 +123,7 @@ func (c *userController) VerifyEmail(ctx *gin.Context) {
 		return
 	}
 
-	result, err := c.userService.VerifyEmail(ctx.Request.Context(), req)
+	result, err := c.userService.VerifyEmail(reqCtx, req)
 	if err != nil {
 		res := response.BuildResponseFailed(dto.MESSAGE_FAILED_VERIFY_EMAIL, err.Error(), nil)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, res)
@@ -121,6 +135,9 @@ func (c *userController) VerifyEmail(ctx *gin.Context) {
 }
 
 func (c *userController) ForgotPassword(ctx *gin.Context) {
+	reqCtx, cancel := context.WithTimeout(ctx.Request.Context(), 20*time.Second)
+	defer cancel()
+
 	var req dto.ForgotPasswordRequest
 	if err := ctx.ShouldBind(&req); err != nil {
 		res := response.BuildResponseFailed(dto.MESSAGE_FAILED_GET_DATA_FROM_BODY, err.Error(), nil)
@@ -128,7 +145,7 @@ func (c *userController) ForgotPassword(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.userService.ForgotPassword(ctx.Request.Context(), req); err != nil {
+	if err := c.userService.ForgotPassword(reqCtx, req); err != nil {
 		res := response.BuildResponseFailed(dto.MESSAGE_FAILED_FORGET_PASSWORD, err.Error(), nil)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, res)
 		return
@@ -139,6 +156,9 @@ func (c *userController) ForgotPassword(ctx *gin.Context) {
 }
 
 func (c *userController) ResetPassword(ctx *gin.Context) {
+	reqCtx, cancel := context.WithTimeout(ctx.Request.Context(), 20*time.Second)
+	defer cancel()
+
 	token := ctx.Query("token")
 	var req dto.ResetPasswordRequest
 
@@ -148,7 +168,7 @@ func (c *userController) ResetPassword(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.userService.ResetPassword(ctx.Request.Context(), token, req.Password); err != nil {
+	if err := c.userService.ResetPassword(reqCtx, token, req.Password); err != nil {
 		res := response.BuildResponseFailed(dto.MESSAGE_FAILED_RESET_PASSWORD, err.Error(), nil)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, res)
 		return
@@ -173,6 +193,9 @@ func (c *userController) MeAuth(ctx *gin.Context) {
 }
 
 func (c *userController) UpdateUser(ctx *gin.Context) {
+	reqCtx, cancel := context.WithTimeout(ctx.Request.Context(), 20*time.Second)
+	defer cancel()
+
 	userId := ctx.MustGet("user_id").(string)
 	var req dto.UserUpdateRequest
 
@@ -182,7 +205,7 @@ func (c *userController) UpdateUser(ctx *gin.Context) {
 		return
 	}
 
-	result, err := c.userService.UpdateUser(ctx.Request.Context(), uuid.MustParse(userId), req)
+	result, err := c.userService.UpdateUser(reqCtx, uuid.MustParse(userId), req)
 	if err != nil {
 		res := response.BuildResponseFailed(dto.MESSAGE_FAILED_UPDATE_USER, err.Error(), nil)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, res)

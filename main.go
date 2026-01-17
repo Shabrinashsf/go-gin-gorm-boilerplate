@@ -68,7 +68,7 @@ func NewServer(db *gorm.DB) *Server {
 
 	// Service
 	transactionService := service.NewTransactionService(transactionRepo, db)
-	userService := service.NewUserService(userRepo, jwtService, mailer)
+	userService := service.NewUserService(userRepo, jwtService, mailer, db)
 
 	// Controller
 	transactionController := controller.NewTransactionController(transactionService)

@@ -14,6 +14,7 @@ import (
 	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/utils"
 	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/utils/mailer"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type (
@@ -32,14 +33,16 @@ type (
 		userRepository repository.UserRepository
 		jwtService     JWTService
 		mailer         mailer.Mailer
+		db             *gorm.DB
 	}
 )
 
-func NewUserService(ur repository.UserRepository, jwt JWTService, mailer mailer.Mailer) UserService {
+func NewUserService(ur repository.UserRepository, jwt JWTService, mailer mailer.Mailer, db *gorm.DB) UserService {
 	return &userService{
 		userRepository: ur,
 		jwtService:     jwt,
 		mailer:         mailer,
+		db:             db,
 	}
 }
 
@@ -56,8 +59,17 @@ func (s *userService) RegisterUser(ctx context.Context, req dto.UserRegistration
 	mu.Lock()
 	defer mu.Unlock()
 
-	_, flag, _ := s.userRepository.GetUserByEmail(ctx, nil, req.Email)
+	tx := s.db.WithContext(ctx).Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+			panic(r)
+		}
+	}()
+
+	_, flag, _ := s.userRepository.GetUserByEmail(ctx, tx, req.Email)
 	if flag {
+		tx.Rollback()
 		return dto.UserResponse{}, dto.ErrorEmailAlreadyExists
 	}
 
@@ -69,6 +81,16 @@ func (s *userService) RegisterUser(ctx context.Context, req dto.UserRegistration
 		NoTelp:     req.NoTelp,
 		Role:       entity.RoleUser,
 		IsVerified: false,
+	}
+
+	newUser, err := s.userRepository.RegisterUser(ctx, tx, user)
+	if err != nil {
+		tx.Rollback()
+		return dto.UserResponse{}, err
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return dto.UserResponse{}, err
 	}
 
 	expired := time.Now().Add(time.Hour * 24).Format("2006-01-02 15:04:05")
@@ -91,11 +113,6 @@ func (s *userService) RegisterUser(ctx context.Context, req dto.UserRegistration
 
 	if err := mail.SendEmail(user.Email, "Backend Boilerplate - Verification Email").Error; err != nil {
 		return dto.UserResponse{}, dto.ErrSendMail
-	}
-
-	newUser, err := s.userRepository.RegisterUser(ctx, nil, user)
-	if err != nil {
-		return dto.UserResponse{}, err
 	}
 
 	return dto.UserResponse{
@@ -203,12 +220,25 @@ func (s *userService) VerifyEmail(ctx context.Context, req dto.VerifyEmailReques
 		return dto.VerifyEmailResponse{}, dto.ErrAccountAlreadyVerified
 	}
 
+	tx := s.db.WithContext(ctx).Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+			panic(r)
+		}
+	}()
+
 	updates := map[string]interface{}{}
 	updates["is_verified"] = true
 
-	updatedUser, err := s.userRepository.UpdateUser(ctx, nil, user.ID, updates)
+	updatedUser, err := s.userRepository.UpdateUser(ctx, tx, user.ID, updates)
 	if err != nil {
+		tx.Rollback()
 		return dto.VerifyEmailResponse{}, dto.ErrUpdateUser
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return dto.VerifyEmailResponse{}, err
 	}
 
 	return dto.VerifyEmailResponse{
@@ -270,15 +300,29 @@ func (s *userService) ResetPassword(ctx context.Context, token string, newPasswo
 	if time.Now().After(expirationTime) {
 		return dto.ErrTokenExpired
 	}
-	hashedPassword, err := helpers.HashPassword(newPassword)
 
+	tx := s.db.WithContext(ctx).Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+			panic(r)
+		}
+	}()
+
+	hashedPassword, err := helpers.HashPassword(newPassword)
 	if err != nil {
+		tx.Rollback()
 		return dto.ErrHashPasswordFailed
 	}
 
 	err = s.userRepository.ResetPassword(ctx, email, hashedPassword)
 	if err != nil {
+		tx.Rollback()
 		return dto.ErrUpdateUser
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return err
 	}
 
 	return nil
@@ -302,8 +346,17 @@ func (s *userService) GetUserByID(ctx context.Context, userId uuid.UUID) (dto.Us
 }
 
 func (s *userService) UpdateUser(ctx context.Context, userId uuid.UUID, req dto.UserUpdateRequest) (dto.UserResponse, error) {
-	user, err := s.userRepository.GetUserByID(ctx, nil, userId)
+	tx := s.db.WithContext(ctx).Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+			panic(r)
+		}
+	}()
+
+	user, err := s.userRepository.GetUserByID(ctx, tx, userId)
 	if err != nil {
+		tx.Rollback()
 		return dto.UserResponse{}, dto.ErrUserNotFound
 	}
 
@@ -320,12 +373,18 @@ func (s *userService) UpdateUser(ctx context.Context, userId uuid.UUID, req dto.
 	}
 
 	if len(updates) == 0 {
+		tx.Rollback()
 		return dto.UserResponse{}, dto.ErrNoChanges
 	}
 
-	userUpdate, err := s.userRepository.UpdateUser(ctx, nil, userId, updates)
+	userUpdate, err := s.userRepository.UpdateUser(ctx, tx, userId, updates)
 	if err != nil {
+		tx.Rollback()
 		return dto.UserResponse{}, dto.ErrUpdateUser
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return dto.UserResponse{}, err
 	}
 
 	return dto.UserResponse{
