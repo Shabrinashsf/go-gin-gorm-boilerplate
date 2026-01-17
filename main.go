@@ -1,10 +1,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/cmd"
 	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/controller"
@@ -17,7 +21,66 @@ import (
 	"github.com/common-nighthawk/go-figure"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"gorm.io/gorm"
 )
+
+type Server struct {
+	// Configuration
+	port string
+	env  string
+
+	// HTTP Server
+	ginEngine  *gin.Engine
+	httpServer *http.Server
+
+	// Context Management
+	rootCTX    context.Context
+	cancelFunc context.CancelFunc
+
+	// Database
+	db *gorm.DB
+
+	// Dependency injection
+	// Repository
+	transactionRepo repository.TransactionRepository
+
+	// Service
+	transactionService service.TransactionService
+
+	// Controller
+	transactionController controller.TransactionController
+}
+
+func NewServer(db *gorm.DB) *Server {
+	// Repository
+	transactionRepo := repository.NewTransactionRepository(db)
+
+	// Service
+	transactionService := service.NewTransactionService(transactionRepo, db)
+
+	// Controller
+	transactionController := controller.NewTransactionController(transactionService)
+
+	// Get current mode
+	port := os.Getenv("APP_PORT")
+	if port == "" {
+		port = "8888"
+	}
+
+	mode := os.Getenv("APP_MODE")
+	if mode == "" {
+		mode = "localhost"
+	}
+
+	return &Server{
+		port:                  port,
+		env:                   mode,
+		db:                    db,
+		transactionRepo:       transactionRepo,
+		transactionService:    transactionService,
+		transactionController: transactionController,
+	}
+}
 
 func main() {
 	// Initialize environment variables
@@ -40,62 +103,108 @@ func main() {
 		return
 	}
 
-	// Dependency injection
-	var (
-		// Initilization package
-		//jwtService service.JWTService = service.NewJWTService()
+	// Create server instance
+	server := NewServer(db)
 
-		// Repository
-		transactionRepository repository.TransactionRepository = repository.NewTransactionRepository(db)
+	// Start server
+	if err := server.Start(); err != nil {
+		log.Fatalf("Failed to start server: %v", err)
+	}
 
-		// Service
-		transactionService service.TransactionService = service.NewTransactionService(transactionRepository, db)
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 
-		// Controller
-		transactionController controller.TransactionController = controller.NewTransactionController(transactionService)
-	)
+	sig := <-quit
+	logger.Infof("Received signal: %v", sig)
 
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := server.Stop(ctx); err != nil {
+		logger.Errorf("Shutdown error: %v", err)
+	}
+
+	logger.Infof("Application exited")
+}
+
+func (s *Server) Start() error {
+	// Create root context
+	s.rootCTX, s.cancelFunc = context.WithCancel(context.Background())
 	logger.Infof("Services initialized")
 	logger.Infof("Setting up server...")
-	server := gin.Default()
-	server.Use(middleware.CORSMiddleware())
 
-	server.NoRoute(func(ctx *gin.Context) {
+	// Setup Gin
+	s.ginEngine = gin.Default()
+	s.ginEngine.Use(middleware.CORSMiddleware())
+
+	// No route handler
+	s.ginEngine.NoRoute(func(ctx *gin.Context) {
 		ctx.JSON(http.StatusNotFound, gin.H{
 			"status":  http.StatusNotFound,
 			"message": "Route Not Found",
 		})
 	})
 
-	server.GET("/api/ping", func(c *gin.Context) {
+	// Health check
+	s.ginEngine.GET("/api/ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"message": "pong pong",
 		})
 	})
 
-	// Initialize routes
-	routes.Transaction(server, transactionController)
+	// Register routes
+	routes.Transaction(s.ginEngine, s.transactionController)
 
-	server.Static("/assets", "./assets")
+	s.ginEngine.Static("/assets", "./assets")
 
-	// Start server
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8888"
-	}
-
-	var serve string
-	if os.Getenv("APP_ENV") == "localhost" {
-		serve = "127.0.0.1:" + port
+	// Create HTTP server
+	var addr string
+	if s.env == "localhost" {
+		addr = "127.0.0.1:" + s.port
 	} else {
-		serve = ":" + port
+		addr = ":" + s.port
 	}
 
-	myFigure := figure.NewColorFigure("Backend Boilerplate", "", "blue", true)
-	myFigure.Print()
-
-	fmt.Printf("Starting server on %s\n", serve)
-	if err := server.Run(serve); err != nil {
-		log.Fatalf("error running server: %v", err)
+	s.httpServer = &http.Server{
+		Addr:    addr,
+		Handler: s.ginEngine,
 	}
+
+	// Start HTTP server in goroutine
+	go func() {
+		myFigure := figure.NewColorFigure("Backend Boilerplate", "", "blue", true)
+		myFigure.Print()
+		fmt.Printf("Starting server on %s\n", addr)
+
+		if err := s.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Errorf("Server error: %v", err)
+		}
+	}()
+
+	return nil
+}
+
+func (s *Server) Stop(ctx context.Context) error {
+	logger.Infof("Starting Graceful Shutdown")
+
+	// Step 1: Cancel root context
+	s.cancelFunc()
+
+	// Step 2: Shutdown HTTP server
+	logger.Infof("Shutting down HTTP server...")
+	if err := s.httpServer.Shutdown(ctx); err != nil {
+		logger.Errorf("HTTP server shutdown error: %v", err)
+		return err
+	}
+	logger.Infof("HTTP Server stopped")
+
+	// Step 3: Close database connections
+	logger.Infof("Closing database connections...")
+	sqlDB, err := s.db.DB()
+	if err == nil {
+		sqlDB.Close()
+	}
+	logger.Infof("Database connections closed")
+	logger.Infof("Graceful Shutdown completed")
+	return nil
 }
