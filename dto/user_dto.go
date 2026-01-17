@@ -32,7 +32,6 @@ var (
 	ErrUserNotFound           = errors.New("user tidak ditemukan")
 	ErrAccountAlreadyVerified = errors.New("akun sudah terverifikasi")
 	ErrUpdateUser             = errors.New("gagal memperbarui data user")
-	ErrPasswordNotMatch       = errors.New("password tidak sesuai")
 	ErrEmailNotFound          = errors.New("email tidak ditemukan")
 	ErrHashPasswordFailed     = errors.New("gagal melakukan hash password")
 	ErrNoChanges              = errors.New("tidak ada perubahan pada data user")
