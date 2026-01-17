@@ -80,7 +80,7 @@ func NewServer(db *gorm.DB) *Server {
 		port = "8888"
 	}
 
-	mode := os.Getenv("APP_MODE")
+	mode := os.Getenv("APP_ENV")
 	if mode == "" {
 		mode = "localhost"
 	}
