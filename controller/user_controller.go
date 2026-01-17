@@ -12,7 +12,7 @@ import (
 
 type (
 	UserController interface {
-		RegiterUser(ctx *gin.Context)
+		RegisterUser(ctx *gin.Context)
 		Login(ctx *gin.Context)
 		SendVerificationEmail(ctx *gin.Context)
 		VerifyEmail(ctx *gin.Context)
@@ -33,7 +33,7 @@ func NewUserController(us service.UserService) UserController {
 	}
 }
 
-func (c *userController) RegiterUser(ctx *gin.Context) {
+func (c *userController) RegisterUser(ctx *gin.Context) {
 	var req dto.UserRegistrationRequest
 	if err := ctx.ShouldBind(&req); err != nil {
 		res := response.BuildResponseFailed(dto.MESSAGE_FAILED_GET_DATA_FROM_BODY, err.Error(), nil)

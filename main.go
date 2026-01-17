@@ -18,6 +18,7 @@ import (
 	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/routes"
 	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/service"
 	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/utils/logger"
+	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/utils/mailer"
 	"github.com/common-nighthawk/go-figure"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -41,25 +42,37 @@ type Server struct {
 	db *gorm.DB
 
 	// Dependency injection
+	jwtService service.JWTService
+	mailer     mailer.Mailer
+
 	// Repository
 	transactionRepo repository.TransactionRepository
+	userRepo        repository.UserRepository
 
 	// Service
 	transactionService service.TransactionService
+	userService        service.UserService
 
 	// Controller
 	transactionController controller.TransactionController
+	userController        controller.UserController
 }
 
 func NewServer(db *gorm.DB) *Server {
+	jwtService := service.NewJWTService()
+	mailer := mailer.NewMailer()
+
 	// Repository
 	transactionRepo := repository.NewTransactionRepository(db)
+	userRepo := repository.NewUserController(db)
 
 	// Service
 	transactionService := service.NewTransactionService(transactionRepo, db)
+	userService := service.NewUserService(userRepo, jwtService, mailer)
 
 	// Controller
 	transactionController := controller.NewTransactionController(transactionService)
+	userController := controller.NewUserController(userService)
 
 	// Get current mode
 	port := os.Getenv("APP_PORT")
@@ -79,6 +92,10 @@ func NewServer(db *gorm.DB) *Server {
 		transactionRepo:       transactionRepo,
 		transactionService:    transactionService,
 		transactionController: transactionController,
+		userRepo:              userRepo,
+		userService:           userService,
+		userController:        userController,
+		jwtService:            jwtService,
 	}
 }
 
@@ -154,6 +171,7 @@ func (s *Server) Start() error {
 
 	// Register routes
 	routes.Transaction(s.ginEngine, s.transactionController)
+	routes.User(s.ginEngine, s.userController, s.jwtService)
 
 	s.ginEngine.Static("/assets", "./assets")
 

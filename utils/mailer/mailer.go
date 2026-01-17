@@ -44,7 +44,7 @@ func NewMailer() Mailer {
 
 func (m Mailer) SendEmail(toEmail, subject string) Mailer {
 	mailer := gomail.NewMessage()
-	mailer.SetHeader("From", "Schematics 2025"+" <"+m.emailConfig.AuthEmail+">")
+	mailer.SetHeader("From", os.Getenv("SMTP_SENDER_NAME")+" <"+m.emailConfig.AuthEmail+">")
 	mailer.SetHeader("To", toEmail)
 	mailer.SetHeader("Subject", subject)
 	mailer.SetBody("text/html", m.Body)

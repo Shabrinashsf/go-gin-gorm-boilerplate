@@ -16,11 +16,11 @@ func Command(db *gorm.DB) {
 
 	for _, arg := range os.Args[1:] {
 		switch arg {
-		case "migrate":
+		case "--migrate":
 			migrate = true
-		case "seed":
+		case "--seed":
 			seed = true
-		case "help":
+		case "--help":
 			help = true
 		}
 	}
@@ -55,8 +55,8 @@ func Command(db *gorm.DB) {
 
 		Examples:
 			go run main.go --migrate
-			go run main.go -s
-			go run main.go --fresh
+			go run main.go --seed
+			go run main.go --help
 		`)
 	}
 }

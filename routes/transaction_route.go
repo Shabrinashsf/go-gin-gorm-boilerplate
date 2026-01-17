@@ -6,7 +6,7 @@ import (
 )
 
 func Transaction(route *gin.Engine, transactionController controller.TransactionController) {
-	routes := route.Group("/transaction")
+	routes := route.Group("/api/transaction")
 	{
 		routes.POST("/webhook/tripay", transactionController.TripayWebhook)
 	}

@@ -35,7 +35,7 @@ type (
 	}
 )
 
-func NewUserController(ur repository.UserRepository, jwt JWTService, mailer mailer.Mailer) UserService {
+func NewUserService(ur repository.UserRepository, jwt JWTService, mailer mailer.Mailer) UserService {
 	return &userService{
 		userRepository: ur,
 		jwtService:     jwt,
@@ -80,8 +80,8 @@ func (s *userService) RegisterUser(ctx context.Context, req dto.UserRegistration
 
 	verifyLink := os.Getenv("APP_URL") + "/" + VERIFY_EMAIL_PATH + "?token=" + token
 	data := map[string]any{
-		"Email": user.Email,
-		"Link":  verifyLink,
+		"Email":  user.Email,
+		"Verify": verifyLink,
 	}
 
 	mail := s.mailer.MakeMail(VERIFY_EMAIL_TEMPLATE, data)
@@ -112,16 +112,16 @@ func (s *userService) RegisterUser(ctx context.Context, req dto.UserRegistration
 func (s *userService) Login(ctx context.Context, req dto.UserLoginRequest) (dto.UserLoginResponse, error) {
 	user, flag, err := s.userRepository.GetUserByEmail(ctx, nil, req.Email)
 	if err != nil || !flag {
-		return dto.UserLoginResponse{}, dto.ErrUserNotFound
+		return dto.UserLoginResponse{}, dto.ErrInvalidCredentials
 	}
 
 	if !user.IsVerified {
-		return dto.UserLoginResponse{}, dto.ErrAccountAlreadyVerified
+		return dto.UserLoginResponse{}, dto.ErrInvalidCredentials
 	}
 
 	checkPassword, err := helpers.CheckPassword(user.Password, []byte(req.Password))
 	if err != nil || !checkPassword {
-		return dto.UserLoginResponse{}, dto.ErrPasswordNotMatch
+		return dto.UserLoginResponse{}, dto.ErrInvalidCredentials
 	}
 
 	token := s.jwtService.GenerateToken(user.ID.String(), string(user.Role))
@@ -136,6 +136,10 @@ func (s *userService) SendVerificationEmail(ctx context.Context, req dto.SendVer
 	user, _, err := s.userRepository.GetUserByEmail(ctx, nil, req.Email)
 	if err != nil {
 		return err
+	}
+
+	if user.IsVerified {
+		return dto.ErrAccountAlreadyVerified
 	}
 
 	expired := time.Now().Add(time.Hour * 24).Format("2006-01-02 15:04:05")
@@ -199,12 +203,10 @@ func (s *userService) VerifyEmail(ctx context.Context, req dto.VerifyEmailReques
 		return dto.VerifyEmailResponse{}, dto.ErrAccountAlreadyVerified
 	}
 
-	userUpdate := entity.User{
-		ID:         user.ID,
-		IsVerified: true,
-	}
+	updates := map[string]interface{}{}
+	updates["is_verified"] = true
 
-	updatedUser, err := s.userRepository.UpdateUser(ctx, nil, userUpdate)
+	updatedUser, err := s.userRepository.UpdateUser(ctx, nil, user.ID, updates)
 	if err != nil {
 		return dto.VerifyEmailResponse{}, dto.ErrUpdateUser
 	}
@@ -239,7 +241,7 @@ func (s *userService) ForgotPassword(ctx context.Context, req dto.ForgotPassword
 		return dto.ErrMakeMail
 	}
 
-	if err := mail.SendEmail(user.Email, "Schematics 2025 - Reset Password").Error; err != nil {
+	if err := mail.SendEmail(user.Email, "Backend Boilerplate - Reset Password").Error; err != nil {
 		return dto.ErrSendMail
 	}
 
@@ -289,10 +291,13 @@ func (s *userService) GetUserByID(ctx context.Context, userId uuid.UUID) (dto.Us
 	}
 
 	return dto.UserResponse{
-		Name:     user.Name,
-		Email:    user.Email,
-		Instansi: user.Instansi,
-		NoTelp:   user.NoTelp,
+		ID:         user.ID.String(),
+		Name:       user.Name,
+		Email:      user.Email,
+		Instansi:   user.Instansi,
+		NoTelp:     user.NoTelp,
+		Role:       string(user.Role),
+		IsVerified: user.IsVerified,
 	}, nil
 }
 
@@ -302,24 +307,34 @@ func (s *userService) UpdateUser(ctx context.Context, userId uuid.UUID, req dto.
 		return dto.UserResponse{}, dto.ErrUserNotFound
 	}
 
-	userUpdate := entity.User{
-		ID:       user.ID,
-		Name:     req.Name,
-		Email:    user.Email,
-		Instansi: req.Instansi,
-		NoTelp:   req.NoTelp,
+	updates := map[string]interface{}{}
+
+	if req.Name != "" && req.Name != user.Name {
+		updates["name"] = req.Name
+	}
+	if req.Instansi != "" && req.Instansi != user.Instansi {
+		updates["instansi"] = req.Instansi
+	}
+	if req.NoTelp != "" && req.NoTelp != user.NoTelp {
+		updates["no_telp"] = req.NoTelp
 	}
 
-	userUpdate, err = s.userRepository.UpdateUser(ctx, nil, userUpdate)
+	if len(updates) == 0 {
+		return dto.UserResponse{}, dto.ErrNoChanges
+	}
+
+	userUpdate, err := s.userRepository.UpdateUser(ctx, nil, userId, updates)
 	if err != nil {
 		return dto.UserResponse{}, dto.ErrUpdateUser
 	}
 
 	return dto.UserResponse{
-		ID:       userUpdate.ID.String(),
-		Name:     userUpdate.Name,
-		Email:    userUpdate.Email,
-		Instansi: userUpdate.Instansi,
-		NoTelp:   userUpdate.NoTelp,
+		ID:         userUpdate.ID.String(),
+		Name:       userUpdate.Name,
+		Email:      userUpdate.Email,
+		Instansi:   userUpdate.Instansi,
+		NoTelp:     userUpdate.NoTelp,
+		Role:       string(user.Role),
+		IsVerified: user.IsVerified,
 	}, nil
 }

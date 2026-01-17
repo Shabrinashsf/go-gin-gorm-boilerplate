@@ -35,12 +35,14 @@ var (
 	ErrPasswordNotMatch       = errors.New("password tidak sesuai")
 	ErrEmailNotFound          = errors.New("email tidak ditemukan")
 	ErrHashPasswordFailed     = errors.New("gagal melakukan hash password")
+	ErrNoChanges              = errors.New("tidak ada perubahan pada data user")
+	ErrInvalidCredentials     = errors.New("kredensial tidak valid")
 )
 
 type (
 	UserRegistrationRequest struct {
 		Name     string `json:"name" form:"name" binding:"required"`
-		Email    string `json:"email" form:"email" binding:"required"`
+		Email    string `json:"email" form:"email" binding:"required,email"`
 		Password string `json:"password" form:"password" binding:"required"`
 		Instansi string `json:"instansi" form:"instansi" binding:"required"`
 		NoTelp   string `json:"no_telp" form:"no_telp" binding:"required"`
@@ -57,7 +59,7 @@ type (
 	}
 
 	UserLoginRequest struct {
-		Email    string `json:"email" form:"email" binding:"required"`
+		Email    string `json:"email" form:"email" binding:"required,email"`
 		Password string `json:"password" form:"password" binding:"required"`
 	}
 
@@ -67,7 +69,7 @@ type (
 	}
 
 	SendVerificationEmailRequest struct {
-		Email string `json:"email" form:"email" binding:"required"`
+		Email string `json:"email" form:"email" binding:"required,email"`
 	}
 
 	VerifyEmailRequest struct {
@@ -80,7 +82,7 @@ type (
 	}
 
 	ForgotPasswordRequest struct {
-		Email string `json:"email" form:"email" binding:"required"`
+		Email string `json:"email" form:"email" binding:"required,email"`
 	}
 
 	ResetPasswordRequest struct {

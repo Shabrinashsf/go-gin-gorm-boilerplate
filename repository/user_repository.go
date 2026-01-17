@@ -13,7 +13,7 @@ import (
 type (
 	UserRepository interface {
 		RegisterUser(ctx context.Context, tx *gorm.DB, user entity.User) (entity.User, error)
-		UpdateUser(ctx context.Context, tx *gorm.DB, user entity.User) (entity.User, error)
+		UpdateUser(ctx context.Context, tx *gorm.DB, id uuid.UUID, updates map[string]interface{}) (entity.User, error)
 		GetUserByID(ctx context.Context, tx *gorm.DB, id uuid.UUID) (entity.User, error)
 		GetUserByEmail(ctx context.Context, tx *gorm.DB, email string) (entity.User, bool, error)
 		ResetPassword(ctx context.Context, email, hashedPassword string) error
@@ -42,12 +42,17 @@ func (r *userRepository) RegisterUser(ctx context.Context, tx *gorm.DB, user ent
 	return user, nil
 }
 
-func (r *userRepository) UpdateUser(ctx context.Context, tx *gorm.DB, user entity.User) (entity.User, error) {
+func (r *userRepository) UpdateUser(ctx context.Context, tx *gorm.DB, id uuid.UUID, updates map[string]interface{}) (entity.User, error) {
 	if tx == nil {
 		tx = r.db
 	}
 
-	if err := tx.WithContext(ctx).Updates(&user).Error; err != nil {
+	if err := tx.WithContext(ctx).Model(&entity.User{}).Where("id = ?", id).Updates(&updates).Error; err != nil {
+		return entity.User{}, err
+	}
+
+	var user entity.User
+	if err := tx.WithContext(ctx).Where("id = ?", id).First(&user).Error; err != nil {
 		return entity.User{}, err
 	}
 
