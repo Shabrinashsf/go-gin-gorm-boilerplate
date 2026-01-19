@@ -165,7 +165,7 @@ func (s *Server) Start() error {
 	// Health check
 	s.ginEngine.GET("/api/ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{
-			"message": "pong pong pong!",
+			"message": "aku sehat, kangen?",
 		})
 	})
 

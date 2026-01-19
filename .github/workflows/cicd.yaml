@@ -25,6 +25,6 @@ jobs:
             sudo git checkout main
             sudo git pull --rebase origin main
             sudo git status
-            sudo /usr/local/go/bin/go build -o main .
+            sudo build -buildvcs=false -o main .
             sudo systemctl restart backend-boilerplate.service
             sudo systemctl status backend-boilerplate.service --no-pager
