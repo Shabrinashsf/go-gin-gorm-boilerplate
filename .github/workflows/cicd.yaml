@@ -1,0 +1,30 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy using ssh
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          password: ${{ secrets.PASSWORD }}
+          port: ${{ secrets.PORT }}
+          script: |
+            # Ensure Go binary is in the PATh
+            export PATH=$PATH:/usr/local/go
+
+            cd /var/www/go-gin-gorm-boilerplate
+            sudo git stash
+            sudo git checkout main
+            sudo git pull --rebase origin main
+            sudo git status
+            sudo /usr/local/go/bin/go build -o main .
+            sudo systemctl restart backend-boilerplate.service
+            sudo systemctl status backend-boilerplate.service --no-pager
