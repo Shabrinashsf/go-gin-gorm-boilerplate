@@ -5,7 +5,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/database"
+	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/database/migrations"
+	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/database/seeders"
 	"gorm.io/gorm"
 )
 
@@ -27,7 +28,7 @@ func Command(db *gorm.DB) {
 
 	if migrate {
 		log.Println("Running migration...")
-		if err := database.Migrate(db); err != nil {
+		if err := migrations.Migrate(db); err != nil {
 			log.Fatalf("Error migration: %v", err)
 		}
 		log.Println("✅ Migration completed successfully.")
@@ -35,7 +36,7 @@ func Command(db *gorm.DB) {
 
 	if seed {
 		log.Println("Running seeder...")
-		if err := database.Seeder(db); err != nil {
+		if err := seeders.Seeder(db); err != nil {
 			log.Fatalf("Error seeding: %v", err)
 		}
 		log.Println("✅ Seeding completed successfully.")

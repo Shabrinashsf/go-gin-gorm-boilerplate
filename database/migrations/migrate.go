@@ -1,4 +1,4 @@
-package database
+package migrations
 
 import (
 	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/entity"
