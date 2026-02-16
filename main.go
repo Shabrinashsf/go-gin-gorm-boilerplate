@@ -11,7 +11,7 @@ import (
 	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/cmd"
 	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/database"
 	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/config"
-	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/utils/logger"
+	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/pkg/logger"
 	"github.com/joho/godotenv"
 )
 

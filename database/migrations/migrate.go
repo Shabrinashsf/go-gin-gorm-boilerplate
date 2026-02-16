@@ -1,7 +1,7 @@
 package migrations
 
 import (
-	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/entity"
+	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/entity"
 	"gorm.io/gorm"
 )
 

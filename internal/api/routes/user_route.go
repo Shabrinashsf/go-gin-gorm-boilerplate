@@ -1,9 +1,9 @@
 package routes
 
 import (
-	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/controller"
-	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/middleware"
-	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/service"
+	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/api/controller"
+	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/api/service"
+	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/middleware"
 	"github.com/gin-gonic/gin"
 )
 

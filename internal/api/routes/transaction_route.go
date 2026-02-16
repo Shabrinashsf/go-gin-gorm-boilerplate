@@ -1,7 +1,7 @@
 package routes
 
 import (
-	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/controller"
+	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/api/controller"
 	"github.com/gin-gonic/gin"
 )
 

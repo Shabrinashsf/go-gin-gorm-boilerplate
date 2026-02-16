@@ -1,7 +1,7 @@
 package entity
 
 import (
-	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/helpers"
+	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/utils"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -36,7 +36,7 @@ func (u *User) BeforeCreate(tx *gorm.DB) error {
 
 	var err error
 	// u.ID = uuid.New()
-	u.Password, err = helpers.HashPassword(u.Password)
+	u.Password, err = utils.HashPassword(u.Password)
 	if err != nil {
 		return err
 	}

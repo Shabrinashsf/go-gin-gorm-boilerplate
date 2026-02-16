@@ -3,7 +3,7 @@ package config
 import (
 	"net/http"
 
-	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/middleware"
+	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/middleware"
 	"github.com/gin-gonic/gin"
 )
 

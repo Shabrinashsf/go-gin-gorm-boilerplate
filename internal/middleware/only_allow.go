@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/constants"
-	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/dto"
-	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/utils/response"
+	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/dto"
+	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/pkg/response"
 	"github.com/gin-gonic/gin"
 )
 

@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/dto"
-	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/entity"
+	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/dto"
+	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/entity"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )

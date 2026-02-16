@@ -8,8 +8,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/dto"
-	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/repository"
+	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/api/repository"
+	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/dto"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )

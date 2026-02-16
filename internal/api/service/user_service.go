@@ -7,12 +7,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/dto"
-	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/entity"
-	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/helpers"
-	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/repository"
-	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/utils"
-	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/utils/mailer"
+	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/api/repository"
+	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/dto"
+	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/entity"
+	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/pkg/mailer"
+	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/utils"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -136,7 +135,7 @@ func (s *userService) Login(ctx context.Context, req dto.UserLoginRequest) (dto.
 		return dto.UserLoginResponse{}, dto.ErrInvalidCredentials
 	}
 
-	checkPassword, err := helpers.CheckPassword(user.Password, []byte(req.Password))
+	checkPassword, err := utils.CheckPassword(user.Password, []byte(req.Password))
 	if err != nil || !checkPassword {
 		return dto.UserLoginResponse{}, dto.ErrInvalidCredentials
 	}
@@ -309,7 +308,7 @@ func (s *userService) ResetPassword(ctx context.Context, token string, newPasswo
 		}
 	}()
 
-	hashedPassword, err := helpers.HashPassword(newPassword)
+	hashedPassword, err := utils.HashPassword(newPassword)
 	if err != nil {
 		tx.Rollback()
 		return dto.ErrHashPasswordFailed
