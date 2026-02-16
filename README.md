@@ -68,6 +68,146 @@ The project comes equipped with various enterprise-level features such as authen
 
 ---
 
+## � Project Structure
+
+```
+go-gin-gorm-boilerplate/
+├── cmd/                          # CLI Commands
+│   └── command.go               # Command handler (migrate, seed)
+│
+├── internal/                     # Internal packages (not exported)
+│   ├── config/                   # Configuration & Setup
+│   │   ├── rest_config.go       # REST API initialization & DI
+│   │   └── rest_router_config.go # Router setup & middleware
+│   ├── api/                      # API layer (if needed)
+│   └── middleware/               # Custom middleware implementations
+│
+├── constants/                    # Application constants
+│   └── common.go
+│
+├── controller/                   # HTTP Handlers
+│   ├── transaction_controller.go
+│   └── user_controller.go
+│
+├── database/                     # Database setup & migrations
+│   ├── database.go              # Connection setup
+│   ├── migrations/              # Database migrations
+│   │   └── migrate.go
+│   └── seeders/                 # Data seeders
+│       ├── seeder.go
+│       ├── data/
+│       ├── json/
+│       └── seeds/
+│           └── user_seed.go
+│
+├── dto/                         # Data Transfer Objects
+│   ├── common.go
+│   ├── transaction_dto.go
+│   └── user_dto.go
+│
+├── entity/                      # Domain Models
+│   ├── common.go
+│   ├── transaction_entity.go
+│   └── user_entity.go
+│
+├── helpers/                     # Helper functions
+│   ├── is_prod.go
+│   └── password.go
+│
+├── middleware/                  # Middleware implementations
+│   ├── authentication.go
+│   ├── cors.go
+│   ├── only_allow.go
+│   └── time.go
+│
+├── repository/                  # Data Access Layer
+│   ├── common.go
+│   ├── transaction_repository.go
+│   └── user_repository.go
+│
+├── routes/                      # Route definitions
+│   ├── transaction_route.go
+│   └── user_route.go
+│
+├── service/                     # Business Logic Layer
+│   ├── jwt_service.go
+│   ├── transaction_service.go
+│   └── user_service.go
+│
+├── utils/                       # Utility packages
+│   ├── aes.go                   # Encryption utilities
+│   ├── file.go
+│   ├── logger/                  # Logging
+│   │   └── logger.go
+│   ├── mailer/                  # Email service
+│   │   ├── mailer.go
+│   │   ├── makeMail.go
+│   │   └── template/
+│   │       ├── forgot_password_email.html
+│   │       └── verification_email.html
+│   ├── pagination/              # Pagination utilities
+│   │   ├── conv.go
+│   │   └── meta.go
+│   ├── payment/                 # Payment integrations
+│   │   └── tripay/
+│   │       ├── client.go
+│   │       ├── signature.go
+│   │       └── tripay.go
+│   ├── response/                # Response formatting
+│   │   └── response.go
+│   └── storage/                 # Cloud storage
+│       └── aws_s3.go
+│
+├── assets/                      # Static files & images
+├── .env.example                 # Environment variables template
+├── Dockerfile                   # Docker image configuration
+├── docker-compose.yml          # Docker Compose setup
+├── go.mod                       # Go module dependencies
+├── go.sum                       # Go module checksums
+├── main.go                      # Application entry point
+└── README.md                    # This file
+```
+
+### Folder Descriptions
+
+| Folder | Purpose |
+|--------|---------|
+| **cmd/** | CLI commands for database operations (migrate, seed) |
+| **internal/config/** | Core configuration: REST API setup, dependency injection, router initialization |
+| **controller/** | HTTP request handlers following Clean Architecture |
+| **service/** | Business logic layer, orchestrates operations between controllers and repositories |
+| **repository/** | Data access layer, abstracts database operations |
+| **entity/** | Domain models representing database tables |
+| **dto/** | Data Transfer Objects for request/response serialization |
+| **middleware/** | HTTP middleware for authentication, CORS, logging, etc. |
+| **database/** | Database connection, migrations, and seeders |
+| **utils/** | Reusable utilities: encryption, email, payments, logging, storage |
+| **routes/** | Route definitions and endpoint configurations |
+| **constants/** | Application-wide constants |
+| **helpers/** | Helper functions for common operations |
+
+### Configuration Flow
+
+```
+main.go
+  ↓
+database.SetUpDatabaseConnection() 
+  ↓
+config.NewRestConfig(db)  [internal/config/rest_config.go]
+  ├─ Dependency Injection
+  ├─ Initialize Services, Repositories, Controllers
+  └─ NewRouter(app)      [internal/config/rest_router_config.go]
+      ├─ Setup Middleware
+      ├─ Register Routes
+      └─ Configure Static Files
+  ↓
+restConfig.Start()
+  ↓
+Graceful Shutdown (30s timeout)
+```
+
+---
+
 ## 🛠 Tech Stack
 
 | Layer | Technology |
@@ -86,32 +226,98 @@ The project comes equipped with various enterprise-level features such as authen
 
 ---
 
+## 🔧 Configuration Architecture
+
+### REST API Configuration (`internal/config/`)
+
+The configuration package handles all REST API setup with a clean, modular approach:
+
+#### rest_config.go
+- **Purpose**: Initialize REST API and manage dependency injection
+- **Responsibility**:
+  - Create database connection
+  - Instantiate all services (JWT, Mailer)
+  - Create all repositories
+  - Create all controllers
+  - Register all routes
+  - Start HTTP server with graceful shutdown support
+- **Key Methods**:
+  - `NewRestConfig(db)` - Initialize REST configuration
+  - `Start()` - Start the HTTP server
+  - `Shutdown(ctx)` - Graceful shutdown with timeout
+
+#### rest_router_config.go
+- **Purpose**: Configure router, middleware, and endpoints
+- **Responsibility**:
+  - Setup Gin router
+  - Apply global middleware (CORS, logging)
+  - Configure no-route handlers
+  - Setup health check endpoints
+  - Register static file servers
+- **Key Functions**:
+  - `NewRouter(server)` - Configure and return router
+
+### Dependency Injection Flow
+
+```
+NewRestConfig(db)
+├─ JWT Service
+├─ Mailer Service
+├─ Repositories (User, Transaction)
+├─ Services (User, Transaction)
+├─ Controllers (User, Transaction)
+└─ Routes Registration
+```
+
+---
+
 ### Clean Architecture Diagram
 
 ```
-┌─────────────────────────────────────────┐
-│         HTTP Layer (Controller)         │
-│  - Handle HTTP requests/responses       │
-│  - Input validation                     │
-└────────────────┬────────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│              Application Entry Point                │
+│ main.go → Database Setup → config.NewRestConfig()  │
+└────────────────┬────────────────────────────────────┘
                  │
-┌────────────────▼────────────────────────┐
-│         Business Logic (Service)        │
-│  - Core business rules                  │
-│  - Data transformation                  │
-│  - Workflow orchestration               │
-└────────────────┬────────────────────────┘
+┌────────────────▼────────────────────────────────────┐
+│  Configuration Layer (internal/config/)             │
+│  - REST API initialization                          │
+│  - Dependency Injection (DI)                        │
+│  - Router & Middleware Setup                        │
+└────────────────┬────────────────────────────────────┘
                  │
-┌────────────────▼────────────────────────┐
-│        Data Access (Repository)         │
-│  - Database operations                  │
-│  - Data persistence                     │
-└────────────────┬────────────────────────┘
+┌────────────────▼────────────────────────────────────┐
+│         HTTP Layer (Controller/)                    │
+│  - Handle HTTP requests/responses                   │
+│  - Input validation via DTO                         │
+│  - Response formatting                              │
+└────────────────┬────────────────────────────────────┘
                  │
-┌────────────────▼────────────────────────┐
-│      Database (PostgreSQL/GORM)        │
-│  - Data storage                         │
-└─────────────────────────────────────────┘
+┌────────────────▼────────────────────────────────────┐
+│      Business Logic Layer (service/)                │
+│  - Orchestrate core business rules                  │
+│  - Data transformation & validation                 │
+│  - Multi-step workflows                             │
+└────────────────┬────────────────────────────────────┘
+                 │
+┌────────────────▼────────────────────────────────────┐
+│      Data Access Layer (repository/)                │
+│  - Abstract database operations                     │
+│  - GORM query builder                               │
+│  - Data persistence & retrieval                     │
+└────────────────┬────────────────────────────────────┘
+                 │
+┌────────────────▼────────────────────────────────────┐
+│        Database Layer (PostgreSQL/GORM)             │
+│  - Data storage                                     │
+│  - Transaction management                           │
+└─────────────────────────────────────────────────────┘
+
+Cross-Cutting Concerns:
+├─ middleware/ (Authentication, CORS, Logging)
+├─ utils/ (Encryption, Email, Payment, Storage)
+├─ helpers/ (Password, Environment checks)
+└─ constants/ (App-wide constants)
 ```
 
 ---
@@ -247,7 +453,33 @@ go run main.go
 
 Application is ready at `http://localhost:8888`
 
-### 2. Database Management
+### 2. Graceful Shutdown
+
+The application implements graceful shutdown with a 30-second timeout:
+
+```bash
+# Start application
+go run main.go
+
+# To shutdown gracefully (Ctrl+C or SIGTERM)
+# 1. Stops accepting new requests
+# 2. Waits for in-flight requests to complete (max 30 seconds)
+# 3. Closes HTTP server
+# 4. Closes database connections
+# 5. Exits cleanly
+```
+
+On interrupt signal, you'll see:
+```
+[info] Received signal: interrupt
+[info] Starting graceful shutdown...
+[info] Shutting down HTTP server...
+[info] HTTP server stopped
+[info] Graceful shutdown completed
+[info] Application exited
+```
+
+### 3. Database Management
 
 ```bash
 # Run migration to create tables
@@ -260,7 +492,7 @@ go run main.go --seed
 go run main.go --help
 ```
 
-### 3. API Testing with Bruno
+### 4. API Testing with Bruno
 
 Complete API documentation is available at:
 - 📍 **Bruno Documentation**: [docs-go-gin-gorm-boilerplate](https://github.com/Shabrinashsf/docs-go-gin-gorm-boilerplate)
