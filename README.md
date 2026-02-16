@@ -75,19 +75,8 @@ go-gin-gorm-boilerplate/
 ├── cmd/                          # CLI Commands
 │   └── command.go               # Command handler (migrate, seed)
 │
-├── internal/                     # Internal packages (not exported)
-│   ├── config/                   # Configuration & Setup
-│   │   ├── rest_config.go       # REST API initialization & DI
-│   │   └── rest_router_config.go # Router setup & middleware
-│   ├── api/                      # API layer (if needed)
-│   └── middleware/               # Custom middleware implementations
-│
 ├── constants/                    # Application constants
 │   └── common.go
-│
-├── controller/                   # HTTP Handlers
-│   ├── transaction_controller.go
-│   └── user_controller.go
 │
 ├── database/                     # Database setup & migrations
 │   ├── database.go              # Connection setup
@@ -100,63 +89,70 @@ go-gin-gorm-boilerplate/
 │       └── seeds/
 │           └── user_seed.go
 │
-├── dto/                         # Data Transfer Objects
-│   ├── common.go
-│   ├── transaction_dto.go
-│   └── user_dto.go
-│
-├── entity/                      # Domain Models
-│   ├── common.go
-│   ├── transaction_entity.go
-│   └── user_entity.go
-│
-├── helpers/                     # Helper functions
-│   ├── is_prod.go
-│   └── password.go
-│
-├── middleware/                  # Middleware implementations
-│   ├── authentication.go
-│   ├── cors.go
-│   ├── only_allow.go
-│   └── time.go
-│
-├── repository/                  # Data Access Layer
-│   ├── common.go
-│   ├── transaction_repository.go
-│   └── user_repository.go
-│
-├── routes/                      # Route definitions
-│   ├── transaction_route.go
-│   └── user_route.go
-│
-├── service/                     # Business Logic Layer
-│   ├── jwt_service.go
-│   ├── transaction_service.go
-│   └── user_service.go
-│
-├── utils/                       # Utility packages
-│   ├── aes.go                   # Encryption utilities
-│   ├── file.go
-│   ├── logger/                  # Logging
-│   │   └── logger.go
-│   ├── mailer/                  # Email service
-│   │   ├── mailer.go
-│   │   ├── makeMail.go
-│   │   └── template/
-│   │       ├── forgot_password_email.html
-│   │       └── verification_email.html
-│   ├── pagination/              # Pagination utilities
-│   │   ├── conv.go
-│   │   └── meta.go
-│   ├── payment/                 # Payment integrations
-│   │   └── tripay/
-│   │       ├── client.go
-│   │       ├── signature.go
-│   │       └── tripay.go
-│   ├── response/                # Response formatting
-│   │   └── response.go
-│   └── storage/                 # Cloud storage
-│       └── aws_s3.go
+├── internal/                     # Internal packages (not exported)
+│   ├── api/                      # API layer
+│   │   ├── controller/           # HTTP Handlers
+│   │   │   ├── transaction_controller.go
+│   │   │   └── user_controller.go
+│   │   ├── repository/           # Data Access Layer
+│   │   │   ├── common.go
+│   │   │   ├── transaction_repository.go
+│   │   │   └── user_repository.go
+│   │   ├── routes/               # Route definitions
+│   │   │   ├── transaction_route.go
+│   │   │   └── user_route.go
+│   │   └── service/              # Business Logic Layer
+│   │       ├── jwt_service.go
+│   │       ├── tansaction_service.go
+│   │       └── user_service.go
+│   │
+│   ├── config/                   # Configuration & Setup
+│   │   ├── rest_config.go        # REST API initialization & DI
+│   │   └── rest_router_config.go # Router setup & middleware
+│   │
+│   ├── dto/                      # Data Transfer Objects
+│   │   ├── common.go
+│   │   ├── transaction_dto.go
+│   │   └── user_dto.go
+│   │
+│   ├── entity/                   # Domain Models
+│   │   ├── common.go
+│   │   ├── transaction_entity.go
+│   │   └── user_entity.go
+│   │
+│   ├── middleware/               # HTTP Middleware
+│   │   ├── authentication.go
+│   │   ├── cors.go
+│   │   ├── only_allow.go
+│   │   └── time.go
+│   │
+│   ├── pkg/                      # Reusable packages
+│   │   ├── logger/               # Logging
+│   │   │   └── logger.go
+│   │   ├── mailer/               # Email service
+│   │   │   ├── mailer.go
+│   │   │   ├── makeMail.go
+│   │   │   └── template/
+│   │   │       ├── forgot_password_email.html
+│   │   │       └── verification_email.html
+│   │   ├── pagination/           # Pagination utilities
+│   │   │   ├── conv.go
+│   │   │   └── meta.go
+│   │   ├── payment/              # Payment integrations
+│   │   │   └── tripay/
+│   │   │       ├── client.go
+│   │   │       ├── signature.go
+│   │   │       └── tripay.go
+│   │   ├── response/             # Response formatting
+│   │   │   └── response.go
+│   │   └── storage/              # Cloud storage
+│   │       └── aws_s3.go
+│   │
+│   └── utils/                    # Utility functions
+│       ├── aes.go                # Encryption utilities
+│       ├── file.go
+│       ├── is_prod.go
+│       └── password.go
 │
 ├── assets/                      # Static files & images
 ├── .env.example                 # Environment variables template
@@ -173,15 +169,23 @@ go-gin-gorm-boilerplate/
 | Folder | Purpose |
 |--------|---------|
 | **cmd/** | CLI commands for database operations (migrate, seed) |
-| **internal/config/** | Core configuration: REST API setup, dependency injection, router initialization |
-| **controller/** | HTTP request handlers following Clean Architecture |
-| **service/** | Business logic layer, orchestrates operations between controllers and repositories |
-| **repository/** | Data access layer, abstracts database operations |
-| **entity/** | Domain models representing database tables |
-| **dto/** | Data Transfer Objects for request/response serialization |
-| **middleware/** | HTTP middleware for authentication, CORS, logging, etc. |
+| **constants/** | Application-wide constants |
 | **database/** | Database connection, migrations, and seeders |
-| **utils/** | Reusable utilities: encryption, email, payments, logging, storage |
+| **internal/api/controller/** | HTTP request handlers following Clean Architecture |
+| **internal/api/service/** | Business logic layer, orchestrates operations between controllers and repositories |
+| **internal/api/repository/** | Data access layer, abstracts database operations |
+| **internal/api/routes/** | Route definitions and endpoint configurations |
+| **internal/config/** | Core configuration: REST API setup, dependency injection, router initialization |
+| **internal/dto/** | Data Transfer Objects for request/response serialization |
+| **internal/entity/** | Domain models representing database tables |
+| **internal/middleware/** | HTTP middleware for authentication, CORS, logging, etc. |
+| **internal/pkg/logger/** | Logging utility |
+| **internal/pkg/mailer/** | Email service with SMTP integration |
+| **internal/pkg/pagination/** | Pagination utilities |
+| **internal/pkg/payment/tripay/** | Tripay payment gateway integration |
+| **internal/pkg/response/** | Standardized API response formatting |
+| **internal/pkg/storage/aws_s3/** | AWS S3 cloud storage integration |
+| **internal/utils/** | Utility functions: encryption (AES), file handling, environment checks, password hashing |
 | **routes/** | Route definitions and endpoint configurations |
 | **constants/** | Application-wide constants |
 | **helpers/** | Helper functions for common operations |
@@ -287,21 +291,21 @@ NewRestConfig(db)
 └────────────────┬────────────────────────────────────┘
                  │
 ┌────────────────▼────────────────────────────────────┐
-│         HTTP Layer (Controller/)                    │
+│      HTTP Layer (internal/api/controller/)          │
 │  - Handle HTTP requests/responses                   │
 │  - Input validation via DTO                         │
 │  - Response formatting                              │
 └────────────────┬────────────────────────────────────┘
                  │
 ┌────────────────▼────────────────────────────────────┐
-│      Business Logic Layer (service/)                │
+│    Business Logic Layer (internal/api/service/)     │
 │  - Orchestrate core business rules                  │
 │  - Data transformation & validation                 │
 │  - Multi-step workflows                             │
 └────────────────┬────────────────────────────────────┘
                  │
 ┌────────────────▼────────────────────────────────────┐
-│      Data Access Layer (repository/)                │
+│   Data Access Layer (internal/api/repository/)      │
 │  - Abstract database operations                     │
 │  - GORM query builder                               │
 │  - Data persistence & retrieval                     │
@@ -314,9 +318,9 @@ NewRestConfig(db)
 └─────────────────────────────────────────────────────┘
 
 Cross-Cutting Concerns:
-├─ middleware/ (Authentication, CORS, Logging)
-├─ utils/ (Encryption, Email, Payment, Storage)
-├─ helpers/ (Password, Environment checks)
+├─ internal/middleware/ (Authentication, CORS, Logging)
+├─ internal/pkg/ (Email, Payment Gateway, Logging, Response Formatting)
+├─ internal/utils/ (Encryption, Password Hashing, File Handling, Environment checks)
 └─ constants/ (App-wide constants)
 ```
 
