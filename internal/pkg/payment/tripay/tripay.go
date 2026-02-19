@@ -4,7 +4,7 @@ import (
 	"context"
 	"os"
 
-	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/dto"
+	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/dto"
 )
 
 func CreateTripayTransaction(ctx context.Context, invoice dto.TripayOrderRequest) (dto.TripayResponse, error) {

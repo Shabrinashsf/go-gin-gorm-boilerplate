@@ -8,7 +8,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/dto"
+	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/dto"
 )
 
 type Client struct {

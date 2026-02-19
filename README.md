@@ -1,29 +1,5 @@
 # Go Gin GORM Boilerplate 🚀
 
-<p align="center">
-  <a href="#main-feature">Feature</a> •
-  <a href="#project-structure">Project Structure</a> •
-  <a href="#installation">Installation</a> •
-  <a href="#configuration">Configuration</a> •
-  <a href="#deployment">Deployment</a> •
-  <a href="#api-documentation">API</a>
-</p>
-
----
-
-## 📋 Daftar Isi
-- [Description](#description)
-- [Main Feature](#main-feature)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Quick Start](#quick-start)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Usage Guide](#usage-guide)
-- [Docker](#docker--deployment)
-
----
-
 ## 📝 Description
 
 **Go Gin GORM Boilerplate** is a complete template for building robust, scalable, and production-ready REST API backends using Go. This boilerplate implements **Clean Architecture** with modern best practices in Go backend development.
