@@ -6,12 +6,8 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/api/controller"
-	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/api/repository"
 	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/api/routes"
-	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/api/service"
 	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/pkg/logger"
-	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/pkg/mailer"
 	"github.com/common-nighthawk/go-figure"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -22,27 +18,23 @@ type RestConfig struct {
 	httpServer *http.Server
 	port       string
 	env        string
+	provider   *Provider
 }
 
 func NewRestConfig(db *gorm.DB) *RestConfig {
 	app := gin.Default()
 	server := NewRouter(app)
 
-	// =========== (SERVICES) ===========
-	jwtService := service.NewJWTService()
-	mailerService := mailer.NewMailer()
+	// Initialize dependency injection provider
+	provider := NewProvider(db)
 
-	// =========== (REPOSITORY) ===========
-	transactionRepo := repository.NewTransactionRepository(db)
-	userRepo := repository.NewUserController(db)
+	// =========== (INJECT DEPENDENCIES) ===========
+	// Controllers
+	userController := provider.InvokeUserController()
+	transactionController := provider.InvokeTransactionController()
 
-	// =========== (SERVICE) ===========
-	transactionService := service.NewTransactionService(transactionRepo, db)
-	userService := service.NewUserService(userRepo, jwtService, mailerService, db)
-
-	// =========== (CONTROLLER) ===========
-	transactionController := controller.NewTransactionController(transactionService)
-	userController := controller.NewUserController(userService)
+	// Services needed for routes
+	jwtService := provider.InvokeJWTService()
 
 	// =========== (ROUTES) ===========
 	routes.Transaction(server, transactionController)
@@ -64,6 +56,7 @@ func NewRestConfig(db *gorm.DB) *RestConfig {
 		httpServer: nil,
 		port:       port,
 		env:        mode,
+		provider:   provider,
 	}
 }
 
@@ -115,6 +108,11 @@ func (rc *RestConfig) Shutdown(ctx context.Context) error {
 			return err
 		}
 		logger.Infof("HTTP server stopped")
+	}
+
+	// Clean up DI provider
+	if rc.provider != nil {
+		rc.provider.Shutdown()
 	}
 
 	logger.Infof("Graceful shutdown completed")
