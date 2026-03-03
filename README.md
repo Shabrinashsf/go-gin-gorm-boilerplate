@@ -34,12 +34,14 @@ The project comes equipped with various enterprise-level features such as authen
 
 ### 🛠 Advanced Features
 - **Clean Architecture**: Separation of concerns with layers: Entity, DTO, Repository, Service, Controller
+- **Dependency Injection**: Using `do` library for type-safe dependency injection
+- **Custom Form Parser**: Handle complex form data including nested arrays and file uploads
+- **Error Handling**: Comprehensive error handling with validation and database error formatting
 - **Database Migration**: Automatic migration with GORM
 - **Seeder**: Seed data for development
 - **CORS Middleware**: Pre-configured CORS for frontend integration
-- **Error Handling**: Centralized error handling with custom error messages
 - **Logging**: Comprehensive logging with Logrus
-- **Data Validation**: Input validation in DTO layer
+- **Data Validation**: Input validation in DTO layer with user-friendly error messages
 - **Pagination Support**: Built-in pagination utility
 
 ---
@@ -103,6 +105,10 @@ go-gin-gorm-boilerplate/
 │   │   └── time.go
 │   │
 │   ├── pkg/                      # Reusable packages
+│   │   ├── error/                # Error handling
+│   │   │   └── errors.go
+│   │   ├── form/                 # Form parser
+│   │   │   └── parser.go
 │   │   ├── logger/               # Logging
 │   │   │   └── logger.go
 │   │   ├── mailer/               # Email service
@@ -155,6 +161,8 @@ go-gin-gorm-boilerplate/
 | **internal/dto/** | Data Transfer Objects for request/response serialization |
 | **internal/entity/** | Domain models representing database tables |
 | **internal/middleware/** | HTTP middleware for authentication, CORS, logging, etc. |
+| **internal/pkg/error/** | Custom error types with validation and database error formatting |
+| **internal/pkg/form/** | Custom form parser for complex form data handling |
 | **internal/pkg/logger/** | Logging utility |
 | **internal/pkg/mailer/** | Email service with SMTP integration |
 | **internal/pkg/pagination/** | Pagination utilities |
@@ -171,11 +179,16 @@ go-gin-gorm-boilerplate/
 ```
 main.go
   ↓
-database.SetUpDatabaseConnection() 
+database.SetUpDatabaseConnection()
   ↓
-config.NewRestConfig(db)  [internal/config/rest_config.go]
-  ├─ Dependency Injection
-  ├─ Initialize Services, Repositories, Controllers
+config.NewProvider(db)  [internal/config/provide.go]
+  ├─ Register database singleton
+  ├─ Register services (JWT, Mailer)
+  ├─ Register repositories (User, Transaction)
+  ├─ Register services (User, Transaction)
+  └─ Register controllers (User, Transaction)
+  ↓
+config.NewRestConfig(provider)  [internal/config/rest_config.go]
   └─ NewRouter(app)      [internal/config/rest_router_config.go]
       ├─ Setup Middleware
       ├─ Register Routes
@@ -239,14 +252,16 @@ The configuration package handles all REST API setup with a clean, modular appro
 
 ### Dependency Injection Flow
 
+The project uses the `do` library (github.com/samber/do) for type-safe dependency injection:
+
 ```
 NewRestConfig(db)
-├─ JWT Service
-├─ Mailer Service
-├─ Repositories (User, Transaction)
-├─ Services (User, Transaction)
-├─ Controllers (User, Transaction)
-└─ Routes Registration
+└─ config.NewProvider(db)
+   ├─ Register Services (JWT, Mailer)
+   ├─ Register Repositories (User, Transaction)
+   ├─ Register Services (User, Transaction)
+   ├─ Register Controllers (User, Transaction)
+   └─ Routes Registration
 ```
 
 ---
@@ -295,10 +310,79 @@ NewRestConfig(db)
 
 Cross-Cutting Concerns:
 ├─ internal/middleware/ (Authentication, CORS, Logging)
-├─ internal/pkg/ (Email, Payment Gateway, Logging, Response Formatting)
+├─ internal/pkg/ (Email, Payment Gateway, Logging, Response Formatting, Error Handling, Form Parser)
 ├─ internal/utils/ (Encryption, Password Hashing, File Handling, Environment checks)
 └─ constants/ (App-wide constants)
 ```
+
+---
+
+## 📝 Response & Error Handling
+
+### Response Patterns
+
+The project provides a clean, builder-style API for creating HTTP responses:
+
+```go
+import "github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/pkg/response"
+
+// Success response
+response.NewSuccess("User created successfully", userData).Send(ctx)
+
+// Success with pagination
+response.NewSuccess("Users retrieved", users, paginationMeta).Send(ctx)
+
+// Success with custom status code
+response.NewSuccess("Resource created", data).ChangeStatusCode(201).Send(ctx)
+
+// Error response
+response.NewFailed("Invalid input", err).SendWithAbort(ctx)
+
+// Error response with data
+response.NewFailed("Validation failed", validationErr, errors).Send(ctx)
+```
+
+### Error Handling
+
+The `internal/pkg/error` package provides comprehensive error handling:
+
+#### Custom Error Type
+```go
+import myerror "github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/pkg/error"
+
+// Create custom error with status code
+err := myerror.New("resource not found", 404)
+```
+
+#### Validation Error Formatting
+Converts `validator.ValidationErrors` to user-friendly messages:
+
+```go
+myerror.FormatValidationError(err)
+// Examples:
+// - "email is required"
+// - "password is too short (minimum: 8)"
+// - "phone_number must be numeric"
+```
+
+#### Database Error Handling
+Converts GORM and PostgreSQL errors to user-friendly messages with appropriate status codes:
+
+```go
+myerror.FromDBError(err)
+// Returns: Error{Message: "...", StatusCode: ...}
+```
+
+**Supported Database Errors:**
+
+| SQLSTATE | Description | Message | Status Code |
+|----------|-------------|---------|-------------|
+| 23505 | unique_violation | "field_name already exists" | 409 Conflict |
+| 23503 | foreign_key_violation | "referenced resource does not exist" | 400 Bad Request |
+| 23502 | not_null_violation | "field_name is required" | 400 Bad Request |
+| 22P02 | invalid_text_representation | "invalid data format provided" | 400 Bad Request |
+| 08001 | connection_error | "database connection error" | 503 Service Unavailable |
+| - | gorm.ErrRecordNotFound | "record not found" | 404 Not Found |
 
 ---
 
