@@ -1,30 +1,67 @@
 package response
 
+import (
+	"net/http"
+
+	myerror "github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/pkg/error"
+	"github.com/gin-gonic/gin"
+)
+
 type Response struct {
-	Status  bool   `json:"status"`
-	Message string `json:"message"`
-	Error   any    `json:"error,omitempty"`
-	Data    any    `json:"data,omitempty"`
-	Meta    any    `json:"meta,omitempty"`
+	StatusCode int    `json:"_"`
+	Success    bool   `json:"success"`
+	Message    string `json:"message"`
+	Error      any    `json:"error,omitempty"`
+	Data       any    `json:"data,omitempty"`
+	Meta       any    `json:"meta,omitempty"`
 }
 
-type EmptyObj struct{}
-
-func BuildResponseSuccess(message string, data any) Response {
+func NewSuccess(message string, data any, meta ...any) Response {
 	res := Response{
-		Status:  true,
-		Message: message,
-		Data:    data,
+		StatusCode: http.StatusOK,
+		Success:    true,
+		Message:    message,
+		Data:       data,
 	}
+
+	if len(meta) > 0 {
+		res.Meta = meta[0]
+	}
+
 	return res
 }
 
-func BuildResponseFailed(message string, err string, data any) Response {
+func NewFailed(message string, err error, data ...any) Response {
 	res := Response{
-		Status:  false,
-		Message: message,
-		Error:   err,
-		Data:    data,
+		StatusCode: http.StatusInternalServerError,
+		Success:    false,
+		Message:    message,
+		Error:      err.Error(),
 	}
+
+	if myErr, ok := err.(myerror.Error); ok {
+		res.StatusCode = myErr.StatusCode
+	}
+
+	if len(data) > 0 {
+		res.Data = data[0]
+	}
+
 	return res
+}
+
+func (r Response) ChangeStatusCode(statusCode int) Response {
+	res := r
+	res.StatusCode = statusCode
+	return res
+}
+
+func (r Response) Send(ctx *gin.Context) {
+	sendStatus := r.StatusCode
+	ctx.JSON(sendStatus, r)
+}
+
+func (r Response) SendWithAbort(ctx *gin.Context) {
+	sendStatus := r.StatusCode
+	ctx.AbortWithStatusJSON(sendStatus, r)
 }

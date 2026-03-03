@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"net/http"
 	"time"
 
 	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/dto"
@@ -14,15 +13,15 @@ func NotBefore(limit string) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		waktu, err := time.Parse("2006-01-02 15:04:05", limit)
 		if err != nil {
-			response := response.BuildResponseFailed(dto.MESSAGE_FAILED_PROSES_REQUEST, dto.MESSAGE_FAILED_PARSE_TIME, nil)
-			ctx.AbortWithStatusJSON(http.StatusInternalServerError, response)
+			res := response.NewFailed(dto.MESSAGE_FAILED_PROSES_REQUEST, dto.ErrFailedParseTime, nil)
+			res.SendWithAbort(ctx)
 			return
 		}
 
 		now := time.Now()
 		if now.Before(waktu) {
-			response := response.BuildResponseFailed(dto.PESAN_DILUAR_MASA_REGISTRASI, dto.MESSAGE_FAILED_PROSES_REQUEST, nil)
-			ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+			res := response.NewFailed(dto.MESSAGE_FAILED_OUT_OF_TIME, dto.ErrFailedProsesRequest, nil)
+			res.SendWithAbort(ctx)
 			return
 		}
 
@@ -35,15 +34,13 @@ func NotAfter(limit string) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		waktu, err := time.Parse("2006-01-02 15:04:05", limit)
 		if err != nil {
-			response := response.BuildResponseFailed(dto.MESSAGE_FAILED_PROSES_REQUEST, dto.MESSAGE_FAILED_PARSE_TIME, nil)
-			ctx.AbortWithStatusJSON(http.StatusInternalServerError, response)
+			response.NewFailed(dto.MESSAGE_FAILED_PROSES_REQUEST, dto.ErrFailedParseTime, nil).SendWithAbort(ctx)
 			return
 		}
 
 		now := time.Now()
 		if now.After(waktu) {
-			response := response.BuildResponseFailed(dto.PESAN_DILUAR_MASA_REGISTRASI, dto.PESAN_DILUAR_MASA_REGISTRASI, nil)
-			ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+			response.NewFailed(dto.MESSAGE_FAILED_OUT_OF_TIME, dto.ErrOutOfTime, nil).SendWithAbort(ctx)
 			return
 		}
 

@@ -7,6 +7,7 @@ import (
 
 	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/api/service"
 	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/dto"
+	myerror "github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/pkg/error"
 	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/pkg/response"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -41,20 +42,17 @@ func (c *userController) RegisterUser(ctx *gin.Context) {
 
 	var req dto.UserRegistrationRequest
 	if err := ctx.ShouldBind(&req); err != nil {
-		res := response.BuildResponseFailed(dto.MESSAGE_FAILED_GET_DATA_FROM_BODY, err.Error(), nil)
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, res)
+		response.NewFailed(dto.MESSAGE_FAILED_GET_DATA_FROM_BODY, myerror.New(myerror.FormatValidationError(err), http.StatusBadRequest), nil).Send(ctx)
 		return
 	}
 
 	result, err := c.userService.RegisterUser(reqCtx, req)
 	if err != nil {
-		res := response.BuildResponseFailed(dto.MESSAGE_FAILED_REGISTER_USER, err.Error(), nil)
-		ctx.JSON(http.StatusBadRequest, res)
+		response.NewFailed(dto.MESSAGE_FAILED_REGISTER_USER, myerror.FromDBError(err), nil).Send(ctx)
 		return
 	}
 
-	res := response.BuildResponseSuccess(dto.MESSAGE_SUCCESS_REGISTER_USER, result)
-	ctx.JSON(http.StatusCreated, res)
+	response.NewSuccess(dto.MESSAGE_SUCCESS_REGISTER_USER, result).Send(ctx)
 }
 
 func (c *userController) Login(ctx *gin.Context) {
@@ -63,20 +61,17 @@ func (c *userController) Login(ctx *gin.Context) {
 
 	var req dto.UserLoginRequest
 	if err := ctx.ShouldBind(&req); err != nil {
-		res := response.BuildResponseFailed(dto.MESSAGE_FAILED_GET_DATA_FROM_BODY, err.Error(), nil)
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, res)
+		response.NewFailed(dto.MESSAGE_FAILED_GET_DATA_FROM_BODY, myerror.New(myerror.FormatValidationError(err), http.StatusBadRequest), nil).Send(ctx)
 		return
 	}
 
 	result, err := c.userService.Login(reqCtx, req)
 	if err != nil {
-		res := response.BuildResponseFailed(dto.MESSAGE_FAILED_LOGIN_USER, err.Error(), nil)
-		ctx.JSON(http.StatusBadRequest, res)
+		response.NewFailed(dto.MESSAGE_FAILED_LOGIN_USER, myerror.FromDBError(err), nil).Send(ctx)
 		return
 	}
 
-	res := response.BuildResponseSuccess(dto.MESSAGE_SUCCESS_LOGIN_USER, result)
-	ctx.JSON(http.StatusOK, res)
+	response.NewSuccess(dto.MESSAGE_SUCCESS_LOGIN_USER, result).Send(ctx)
 }
 
 func (c *userController) SendVerificationEmail(ctx *gin.Context) {
@@ -85,20 +80,17 @@ func (c *userController) SendVerificationEmail(ctx *gin.Context) {
 
 	var req dto.SendVerificationEmailRequest
 	if err := ctx.ShouldBind(&req); err != nil {
-		res := response.BuildResponseFailed(dto.MESSAGE_FAILED_GET_DATA_FROM_BODY, err.Error(), nil)
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, res)
+		response.NewFailed(dto.MESSAGE_FAILED_GET_DATA_FROM_BODY, myerror.New(myerror.FormatValidationError(err), http.StatusBadRequest), nil).Send(ctx)
 		return
 	}
 
 	err := c.userService.SendVerificationEmail(reqCtx, req)
 	if err != nil {
-		res := response.BuildResponseFailed(dto.MESSAGE_FAILED_PROSES_REQUEST, err.Error(), nil)
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, res)
+		response.NewFailed(dto.MESSAGE_FAILED_PROSES_REQUEST, myerror.FromDBError(err), nil)
 		return
 	}
 
-	res := response.BuildResponseSuccess(dto.MESSAGE_SEND_VERIFICATION_EMAIL_SUCCESS, nil)
-	ctx.JSON(http.StatusOK, res)
+	response.NewSuccess(dto.MESSAGE_SEND_VERIFICATION_EMAIL_SUCCESS, nil)
 }
 
 func (c *userController) VerifyEmail(ctx *gin.Context) {
@@ -108,8 +100,7 @@ func (c *userController) VerifyEmail(ctx *gin.Context) {
 	token := ctx.Query("token")
 
 	if token == "" {
-		res := response.BuildResponseFailed(dto.MESSAGE_FAILED_TOKEN_NOT_FOUND, "token not found", nil)
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, res)
+		response.NewFailed(dto.MESSAGE_FAILED_TOKEN_NOT_FOUND, dto.ErrTokenNotFound, nil).Send(ctx)
 		return
 	}
 
@@ -118,20 +109,17 @@ func (c *userController) VerifyEmail(ctx *gin.Context) {
 	}
 
 	if err := ctx.ShouldBind(&req); err != nil {
-		res := response.BuildResponseFailed(dto.MESSAGE_FAILED_GET_DATA_FROM_BODY, err.Error(), nil)
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, res)
+		response.NewFailed(dto.MESSAGE_FAILED_GET_DATA_FROM_BODY, myerror.New(myerror.FormatValidationError(err), http.StatusBadRequest), nil).Send(ctx)
 		return
 	}
 
 	result, err := c.userService.VerifyEmail(reqCtx, req)
 	if err != nil {
-		res := response.BuildResponseFailed(dto.MESSAGE_FAILED_VERIFY_EMAIL, err.Error(), nil)
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, res)
+		response.NewFailed(dto.MESSAGE_FAILED_VERIFY_EMAIL, myerror.FromDBError(err), nil).Send(ctx)
 		return
 	}
 
-	res := response.BuildResponseSuccess(dto.MESSAGE_SUCCESS_VERIFY_EMAIL, result)
-	ctx.JSON(http.StatusOK, res)
+	response.NewSuccess(dto.MESSAGE_SUCCESS_VERIFY_EMAIL, result).Send(ctx)
 }
 
 func (c *userController) ForgotPassword(ctx *gin.Context) {
@@ -140,19 +128,16 @@ func (c *userController) ForgotPassword(ctx *gin.Context) {
 
 	var req dto.ForgotPasswordRequest
 	if err := ctx.ShouldBind(&req); err != nil {
-		res := response.BuildResponseFailed(dto.MESSAGE_FAILED_GET_DATA_FROM_BODY, err.Error(), nil)
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, res)
+		response.NewFailed(dto.MESSAGE_FAILED_GET_DATA_FROM_BODY, myerror.New(myerror.FormatValidationError(err), http.StatusBadRequest), nil).Send(ctx)
 		return
 	}
 
 	if err := c.userService.ForgotPassword(reqCtx, req); err != nil {
-		res := response.BuildResponseFailed(dto.MESSAGE_FAILED_FORGET_PASSWORD, err.Error(), nil)
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, res)
+		response.NewFailed(dto.MESSAGE_FAILED_FORGET_PASSWORD, myerror.FromDBError(err), nil).Send(ctx)
 		return
 	}
 
-	res := response.BuildResponseSuccess(dto.MESSAGE_SUCCESS_FORGET_PASSWORD, nil)
-	ctx.JSON(http.StatusOK, res)
+	response.NewSuccess(dto.MESSAGE_SUCCESS_FORGET_PASSWORD, nil).Send(ctx)
 }
 
 func (c *userController) ResetPassword(ctx *gin.Context) {
@@ -163,19 +148,16 @@ func (c *userController) ResetPassword(ctx *gin.Context) {
 	var req dto.ResetPasswordRequest
 
 	if err := ctx.ShouldBind(&req); err != nil {
-		res := response.BuildResponseFailed(dto.MESSAGE_FAILED_GET_DATA_FROM_BODY, err.Error(), nil)
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, res)
+		response.NewFailed(dto.MESSAGE_FAILED_GET_DATA_FROM_BODY, myerror.New(myerror.FormatValidationError(err), http.StatusBadRequest), nil).Send(ctx)
 		return
 	}
 
 	if err := c.userService.ResetPassword(reqCtx, token, req.Password); err != nil {
-		res := response.BuildResponseFailed(dto.MESSAGE_FAILED_RESET_PASSWORD, err.Error(), nil)
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, res)
+		response.NewFailed(dto.MESSAGE_FAILED_RESET_PASSWORD, myerror.FromDBError(err), nil)
 		return
 	}
 
-	res := response.BuildResponseSuccess(dto.MESSAGE_SUCCESS_RESET_PASSWORD, nil)
-	ctx.JSON(http.StatusOK, res)
+	response.NewSuccess(dto.MESSAGE_SUCCESS_RESET_PASSWORD, nil).Send(ctx)
 }
 
 func (c *userController) MeAuth(ctx *gin.Context) {
@@ -183,13 +165,11 @@ func (c *userController) MeAuth(ctx *gin.Context) {
 
 	result, err := c.userService.GetUserByID(ctx.Request.Context(), uuid.MustParse(userId))
 	if err != nil {
-		res := response.BuildResponseFailed(dto.MESSAGE_FAILED_GET_USER, err.Error(), nil)
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, res)
+		response.NewFailed(dto.MESSAGE_FAILED_GET_DATA_FROM_BODY, myerror.FromDBError(err), nil).Send(ctx)
 		return
 	}
 
-	res := response.BuildResponseSuccess(dto.MESSAGE_SUCCESS_GET_USER, result)
-	ctx.JSON(http.StatusOK, res)
+	response.NewSuccess(dto.MESSAGE_SUCCESS_GET_USER, result).Send(ctx)
 }
 
 func (c *userController) UpdateUser(ctx *gin.Context) {
@@ -200,18 +180,15 @@ func (c *userController) UpdateUser(ctx *gin.Context) {
 	var req dto.UserUpdateRequest
 
 	if err := ctx.ShouldBind(&req); err != nil {
-		res := response.BuildResponseFailed(dto.MESSAGE_FAILED_GET_DATA_FROM_BODY, err.Error(), nil)
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, res)
+		response.NewFailed(dto.MESSAGE_FAILED_GET_DATA_FROM_BODY, myerror.New(myerror.FormatValidationError(err), http.StatusBadRequest), nil).Send(ctx)
 		return
 	}
 
 	result, err := c.userService.UpdateUser(reqCtx, uuid.MustParse(userId), req)
 	if err != nil {
-		res := response.BuildResponseFailed(dto.MESSAGE_FAILED_UPDATE_USER, err.Error(), nil)
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, res)
+		response.NewFailed(dto.MESSAGE_FAILED_UPDATE_USER, myerror.FromDBError(err), nil).Send(ctx)
 		return
 	}
 
-	res := response.BuildResponseSuccess(dto.MESSAGE_SUCCESS_UPDATE_USER, result)
-	ctx.JSON(http.StatusOK, res)
+	response.NewSuccess(dto.MESSAGE_SUCCESS_UPDATE_USER, result).Send(ctx)
 }
