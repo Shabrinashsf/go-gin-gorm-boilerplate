@@ -1,7 +1,7 @@
 package entity
 
 import (
-	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/utils"
+	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/pkg/utils"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )

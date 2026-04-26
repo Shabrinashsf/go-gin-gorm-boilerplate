@@ -27,4 +27,5 @@ var (
 	ErrTokenNotFound       = myerror.New("token not found", http.StatusUnauthorized)
 	ErrTokenNotValid       = myerror.New("token not valid", http.StatusUnauthorized)
 	ErrDeniedAccess        = myerror.New("denied access", http.StatusUnauthorized)
+	ErrInvalidTypeFile     = myerror.New("invalid file type", http.StatusBadRequest)
 )
