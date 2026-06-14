@@ -14,6 +14,7 @@ const (
 	MESSAGE_FAILED_GET_DATA_FROM_BODY  = "failed to get data from body"
 	MESSAGE_FAILED_GET_CALLBACK_TRIPAY = "failed to get callback from tripay"
 	MESSAGE_FAILED_OUT_OF_TIME         = "request made outside of allowed time frame"
+	MESSAGE_API_IS_LOCKED              = "API is locked"
 
 	// Success Messages
 	MESSAGE_SUCCESS_GET_CALLBACK_TRIPAY = "success get callback from tripay"

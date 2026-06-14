@@ -11,7 +11,7 @@ import (
 	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/dto"
 	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/entity"
 	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/pkg/mailer"
-	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/utils"
+	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/pkg/utils"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )

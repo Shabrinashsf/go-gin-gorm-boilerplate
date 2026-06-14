@@ -1,27 +1,39 @@
 package middleware
 
 import (
+	"net/http"
 	"time"
 
 	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/dto"
+	myerror "github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/pkg/error"
 	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/pkg/response"
 	"github.com/gin-gonic/gin"
 )
 
-// Reject if request is made before limit. FORMAT: YYYY-MM-DD hh:mm:ss
-func NotBefore(limit string) gin.HandlerFunc {
+type (
+	LockApiMiddleware struct {
+		IsLocked bool
+		location *time.Location
+	}
+
+	LockOption func(m *LockApiMiddleware)
+)
+
+func (m Middleware) LockAPI(msg string, opts ...LockOption) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		waktu, err := time.Parse("2006-01-02 15:04:05", limit)
-		if err != nil {
-			res := response.NewFailed(dto.MESSAGE_FAILED_PROSES_REQUEST, dto.ErrFailedParseTime, nil)
-			res.SendWithAbort(ctx)
-			return
+		location, _ := time.LoadLocation("Asia/Jakarta")
+		lockApiMiddleware := LockApiMiddleware{
+			IsLocked: false,
+			location: location,
 		}
 
-		now := time.Now()
-		if now.Before(waktu) {
-			res := response.NewFailed(dto.MESSAGE_FAILED_OUT_OF_TIME, dto.ErrFailedProsesRequest, nil)
-			res.SendWithAbort(ctx)
+		for _, opt := range opts {
+			opt(&lockApiMiddleware)
+		}
+
+		if lockApiMiddleware.IsLocked {
+			response.NewFailed(dto.MESSAGE_API_IS_LOCKED, myerror.New(msg, http.StatusForbidden)).
+				SendWithAbort(ctx)
 			return
 		}
 
@@ -29,21 +41,61 @@ func NotBefore(limit string) gin.HandlerFunc {
 	}
 }
 
-// Reject if request is made after limit. FORMAT: YYYY-MM-DD hh:mm:ss
-func NotAfter(limit string) gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		waktu, err := time.Parse("2006-01-02 15:04:05", limit)
+func (m Middleware) LockAPIByKey(key string) gin.HandlerFunc {
+	lockRange, ok := m.lockRanges[key]
+	if !ok || lockRange.Start == "" || lockRange.End == "" {
+		return func(ctx *gin.Context) {
+			ctx.Next()
+		}
+	}
+
+	msg := lockRange.Message
+	if msg == "" {
+		msg = "API is locked"
+	}
+
+	return m.LockAPI(msg, m.NotInRange(lockRange.Start, lockRange.End))
+}
+
+func (m Middleware) NotBefore(t string) LockOption {
+	return func(ml *LockApiMiddleware) {
+		parsedTime, err := time.ParseInLocation("02-01-2006 15:04:05", t, ml.location)
 		if err != nil {
-			response.NewFailed(dto.MESSAGE_FAILED_PROSES_REQUEST, dto.ErrFailedParseTime, nil).SendWithAbort(ctx)
 			return
 		}
 
-		now := time.Now()
-		if now.After(waktu) {
-			response.NewFailed(dto.MESSAGE_FAILED_OUT_OF_TIME, dto.ErrOutOfTime, nil).SendWithAbort(ctx)
+		now := time.Now().In(ml.location)
+		if now.Before(parsedTime) {
+			ml.IsLocked = true
+		}
+	}
+}
+
+func (m Middleware) NotAfter(t string) LockOption {
+	return func(ml *LockApiMiddleware) {
+		parsedTime, err := time.ParseInLocation("02-01-2006 15:04:05", t, ml.location)
+		if err != nil {
+			return
+		}
+		now := time.Now().In(ml.location)
+		if now.After(parsedTime) {
+			ml.IsLocked = true
+		}
+	}
+}
+
+func (m Middleware) NotInRange(start, end string) LockOption {
+	return func(ml *LockApiMiddleware) {
+		startTime, err1 := time.ParseInLocation("02-01-2006 15:04:05", start, ml.location)
+		endTime, err2 := time.ParseInLocation("02-01-2006 15:04:05", end, ml.location)
+
+		if err1 != nil || err2 != nil {
 			return
 		}
 
-		ctx.Next()
+		now := time.Now().In(ml.location)
+		if now.Before(startTime) || now.After(endTime) {
+			ml.IsLocked = true
+		}
 	}
 }
