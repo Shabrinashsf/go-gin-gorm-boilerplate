@@ -10,6 +10,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type ApiLockRange struct {
+	Start   string
+	End     string
+	Message string
+}
+
 type (
 	LockApiMiddleware struct {
 		IsLocked bool
@@ -19,7 +25,7 @@ type (
 	LockOption func(m *LockApiMiddleware)
 )
 
-func (m Middleware) LockAPI(msg string, opts ...LockOption) gin.HandlerFunc {
+func LockAPI(msg string, opts ...LockOption) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		location, _ := time.LoadLocation("Asia/Jakarta")
 		lockApiMiddleware := LockApiMiddleware{
@@ -41,8 +47,8 @@ func (m Middleware) LockAPI(msg string, opts ...LockOption) gin.HandlerFunc {
 	}
 }
 
-func (m Middleware) LockAPIByKey(key string) gin.HandlerFunc {
-	lockRange, ok := m.lockRanges[key]
+func LockAPIByKey(lockRanges map[string]ApiLockRange, key string) gin.HandlerFunc {
+	lockRange, ok := lockRanges[key]
 	if !ok || lockRange.Start == "" || lockRange.End == "" {
 		return func(ctx *gin.Context) {
 			ctx.Next()
@@ -54,10 +60,10 @@ func (m Middleware) LockAPIByKey(key string) gin.HandlerFunc {
 		msg = "API is locked"
 	}
 
-	return m.LockAPI(msg, m.NotInRange(lockRange.Start, lockRange.End))
+	return LockAPI(msg, NotInRange(lockRange.Start, lockRange.End))
 }
 
-func (m Middleware) NotBefore(t string) LockOption {
+func NotBefore(t string) LockOption {
 	return func(ml *LockApiMiddleware) {
 		parsedTime, err := time.ParseInLocation("02-01-2006 15:04:05", t, ml.location)
 		if err != nil {
@@ -71,7 +77,7 @@ func (m Middleware) NotBefore(t string) LockOption {
 	}
 }
 
-func (m Middleware) NotAfter(t string) LockOption {
+func NotAfter(t string) LockOption {
 	return func(ml *LockApiMiddleware) {
 		parsedTime, err := time.ParseInLocation("02-01-2006 15:04:05", t, ml.location)
 		if err != nil {
@@ -84,7 +90,7 @@ func (m Middleware) NotAfter(t string) LockOption {
 	}
 }
 
-func (m Middleware) NotInRange(start, end string) LockOption {
+func NotInRange(start, end string) LockOption {
 	return func(ml *LockApiMiddleware) {
 		startTime, err1 := time.ParseInLocation("02-01-2006 15:04:05", start, ml.location)
 		endTime, err2 := time.ParseInLocation("02-01-2006 15:04:05", end, ml.location)

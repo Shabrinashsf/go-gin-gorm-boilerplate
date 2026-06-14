@@ -55,9 +55,6 @@ var (
 )
 
 func (s *userService) RegisterUser(ctx context.Context, req dto.UserRegistrationRequest) (dto.UserResponse, error) {
-	mu.Lock()
-	defer mu.Unlock()
-
 	tx := s.db.WithContext(ctx).Begin()
 	defer func() {
 		if r := recover(); r != nil {
@@ -210,15 +207,6 @@ func (s *userService) VerifyEmail(ctx context.Context, req dto.VerifyEmailReques
 		}, dto.ErrTokenExpired
 	}
 
-	user, _, err := s.userRepository.GetUserByEmail(ctx, nil, email)
-	if err != nil {
-		return dto.VerifyEmailResponse{}, dto.ErrUserNotFound
-	}
-
-	if user.IsVerified {
-		return dto.VerifyEmailResponse{}, dto.ErrAccountAlreadyVerified
-	}
-
 	tx := s.db.WithContext(ctx).Begin()
 	defer func() {
 		if r := recover(); r != nil {
@@ -226,6 +214,15 @@ func (s *userService) VerifyEmail(ctx context.Context, req dto.VerifyEmailReques
 			panic(r)
 		}
 	}()
+
+	user, _, err := s.userRepository.GetUserByEmail(ctx, tx, email)
+	if err != nil {
+		return dto.VerifyEmailResponse{}, dto.ErrUserNotFound
+	}
+
+	if user.IsVerified {
+		return dto.VerifyEmailResponse{}, dto.ErrAccountAlreadyVerified
+	}
 
 	updates := map[string]interface{}{}
 	updates["is_verified"] = true
@@ -314,7 +311,7 @@ func (s *userService) ResetPassword(ctx context.Context, token string, newPasswo
 		return dto.ErrHashPasswordFailed
 	}
 
-	err = s.userRepository.ResetPassword(ctx, email, hashedPassword)
+	err = s.userRepository.ResetPassword(ctx, tx, email, hashedPassword)
 	if err != nil {
 		tx.Rollback()
 		return dto.ErrUpdateUser

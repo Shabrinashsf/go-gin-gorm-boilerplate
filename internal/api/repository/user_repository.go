@@ -16,7 +16,7 @@ type (
 		UpdateUser(ctx context.Context, tx *gorm.DB, id uuid.UUID, updates map[string]interface{}) (entity.User, error)
 		GetUserByID(ctx context.Context, tx *gorm.DB, id uuid.UUID) (entity.User, error)
 		GetUserByEmail(ctx context.Context, tx *gorm.DB, email string) (entity.User, bool, error)
-		ResetPassword(ctx context.Context, email, hashedPassword string) error
+		ResetPassword(ctx context.Context, tx *gorm.DB, email, hashedPassword string) error
 	}
 
 	userRepository struct {
@@ -24,7 +24,7 @@ type (
 	}
 )
 
-func NewUserController(db *gorm.DB) UserRepository {
+func NewUserRepository(db *gorm.DB) UserRepository {
 	return &userRepository{
 		db: db,
 	}
@@ -85,7 +85,11 @@ func (r *userRepository) GetUserByEmail(ctx context.Context, tx *gorm.DB, email 
 	return user, true, nil
 }
 
-func (r *userRepository) ResetPassword(ctx context.Context, email, hashedPassword string) error {
+func (r *userRepository) ResetPassword(ctx context.Context, tx *gorm.DB, email, hashedPassword string) error {
+	if tx == nil {
+		tx = r.db
+	}
+
 	var user entity.User
 	if err := r.db.WithContext(ctx).Where("email = ?", email).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

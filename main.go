@@ -36,6 +36,9 @@ func main() {
 		return
 	}
 
+	// Initialize API lock ranges
+	config.InitApiLockRanges()
+
 	// Create REST config and start server
 	restConfig := config.NewRestConfig(db)
 	logger.Infof("Services initialized")

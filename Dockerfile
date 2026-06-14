@@ -22,7 +22,7 @@ RUN addgroup -g 1000 appuser && \
 WORKDIR /app
 
 COPY --from=builder /app/main .
-COPY --from=builder /app/utils/mailer/template ./utils/mailer/template
+COPY --from=builder /app/internal/pkg/mailer/template ./utils/mailer/template
 
 RUN chown -R appuser:appuser /app
 

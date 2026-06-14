@@ -1,15 +1,13 @@
 package config
 
-import "os"
+import (
+	"os"
 
-type ApiLockRange struct {
-	Start   string
-	End     string
-	Message string
-}
+	"github.com/Shabrinashsf/go-gin-gorm-boilerplate/internal/middleware"
+)
 
 var (
-	ApiLockRanges map[string]ApiLockRange
+	ApiLockRanges map[string]middleware.ApiLockRange
 )
 
 func InitApiLockRanges() {
@@ -22,6 +20,6 @@ func InitApiLockRanges() {
 
 // how to use: "lock-name": {Start: "01-06-2026 10:00:00", End: "30-06-2026 23:59:59", Message: "api closed for maintenance"},
 
-var ApiLockRangesDev = map[string]ApiLockRange{}
+var ApiLockRangesDev = map[string]middleware.ApiLockRange{}
 
-var ApiLockRangesProd = map[string]ApiLockRange{}
+var ApiLockRangesProd = map[string]middleware.ApiLockRange{}

@@ -54,9 +54,19 @@ func (s *transactionService) TripayWebhook(ctx context.Context, rawBody []byte, 
 		return dto.TripayWebhookResponse{}, dto.ErrOnlyClosedPaymentSupported
 	}
 
+	// start transaction for atomic webhook processing
+	tx := s.db.WithContext(ctx).Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+			panic(r)
+		}
+	}()
+
 	// cari transaksi berdasarkan reference
-	transaction, err := s.transactionRepo.GetTransactionByReference(ctx, nil, payload.Reference)
+	transaction, err := s.transactionRepo.GetTransactionByReference(ctx, tx, payload.Reference)
 	if err != nil {
+		tx.Rollback()
 		return dto.TripayWebhookResponse{}, dto.ErrTransactionNotFound
 	}
 
@@ -65,36 +75,47 @@ func (s *transactionService) TripayWebhook(ctx context.Context, rawBody []byte, 
 	case "PAID":
 		transaction.Status = "PAID"
 		transaction.AmountPaid = payload.TotalAmount
-		if err := s.transactionRepo.UpdateTransaction(ctx, nil, transaction); err != nil {
+		if err := s.transactionRepo.UpdateTransaction(ctx, tx, transaction); err != nil {
+			tx.Rollback()
 			return dto.TripayWebhookResponse{}, dto.ErrFailedToUpdateStatus
 		}
 	case "FAILED":
 		transaction.Status = "FAILED"
-		if err := s.transactionRepo.UpdateTransaction(ctx, nil, transaction); err != nil {
+		if err := s.transactionRepo.UpdateTransaction(ctx, tx, transaction); err != nil {
+			tx.Rollback()
 			return dto.TripayWebhookResponse{}, dto.ErrFailedToUpdateStatus
 		}
 	case "EXPIRED":
 		if transaction.Status == "PAID" {
 			// jika sudah PAID, jangan diubah ke EXPIRED
+			tx.Rollback()
 			return dto.TripayWebhookResponse{
 				Success: true,
 			}, nil
 		}
 		transaction.Status = "EXPIRED"
-		if err := s.transactionRepo.UpdateTransaction(ctx, nil, transaction); err != nil {
+		if err := s.transactionRepo.UpdateTransaction(ctx, tx, transaction); err != nil {
+			tx.Rollback()
 			return dto.TripayWebhookResponse{}, dto.ErrFailedToUpdateStatus
 		}
 
-		if err := s.transactionRepo.SoftDeleteTransaction(ctx, nil, transaction.ID); err != nil {
+		if err := s.transactionRepo.SoftDeleteTransaction(ctx, tx, transaction.ID); err != nil {
+			tx.Rollback()
 			return dto.TripayWebhookResponse{}, dto.ErrFailedToSoftDeleteTransaction
 		}
 	case "REFUND":
 		transaction.Status = "REFUND"
-		if err := s.transactionRepo.UpdateTransaction(ctx, nil, transaction); err != nil {
+		if err := s.transactionRepo.UpdateTransaction(ctx, tx, transaction); err != nil {
+			tx.Rollback()
 			return dto.TripayWebhookResponse{}, dto.ErrFailedToUpdateStatus
 		}
 	default:
+		tx.Rollback()
 		return dto.TripayWebhookResponse{}, dto.ErrUnknownStatus
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return dto.TripayWebhookResponse{}, dto.ErrFailedToUpdateStatus
 	}
 
 	return dto.TripayWebhookResponse{
@@ -103,5 +124,18 @@ func (s *transactionService) TripayWebhook(ctx context.Context, rawBody []byte, 
 }
 
 func (s *transactionService) SoftDeleteTransaction(ctx context.Context, id uuid.UUID) error {
-	return s.transactionRepo.SoftDeleteTransaction(ctx, nil, id)
+	tx := s.db.WithContext(ctx).Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+			panic(r)
+		}
+	}()
+
+	if err := s.transactionRepo.SoftDeleteTransaction(ctx, tx, id); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit().Error
 }

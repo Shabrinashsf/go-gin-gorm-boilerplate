@@ -86,11 +86,11 @@ func (c *userController) SendVerificationEmail(ctx *gin.Context) {
 
 	err := c.userService.SendVerificationEmail(reqCtx, req)
 	if err != nil {
-		response.NewFailed(dto.MESSAGE_FAILED_PROSES_REQUEST, myerror.FromDBError(err), nil)
+		response.NewFailed(dto.MESSAGE_FAILED_PROSES_REQUEST, myerror.FromDBError(err), nil).Send(ctx)
 		return
 	}
 
-	response.NewSuccess(dto.MESSAGE_SEND_VERIFICATION_EMAIL_SUCCESS, nil)
+	response.NewSuccess(dto.MESSAGE_SEND_VERIFICATION_EMAIL_SUCCESS, nil).Send(ctx)
 }
 
 func (c *userController) VerifyEmail(ctx *gin.Context) {
@@ -153,7 +153,7 @@ func (c *userController) ResetPassword(ctx *gin.Context) {
 	}
 
 	if err := c.userService.ResetPassword(reqCtx, token, req.Password); err != nil {
-		response.NewFailed(dto.MESSAGE_FAILED_RESET_PASSWORD, myerror.FromDBError(err), nil)
+		response.NewFailed(dto.MESSAGE_FAILED_RESET_PASSWORD, myerror.FromDBError(err), nil).Send(ctx)
 		return
 	}
 
